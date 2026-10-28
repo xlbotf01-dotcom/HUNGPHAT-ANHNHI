@@ -2560,117 +2560,358 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* TAB 13: RSVP */}
           {activeTab === 'rsvp' && (
-            <div className="bg-white p-6 rounded-xl border border-neutral-200 shadow-xs space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4">
-                <div>
-                  <h3 className="text-sm font-semibold uppercase tracking-wider text-[#710001]">
-                    Danh sách khách mời phản hồi ({filteredRsvps.length} bản ghi)
-                  </h3>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    Quản lý danh sách xác nhận tham dự và số lượng khách mời
-                  </p>
+            <div className="space-y-6">
+              {/* CARD 1: CẤU HÌNH & GHI CHÚ RSVP */}
+              <div className="bg-white p-6 rounded-xl border border-neutral-200 shadow-xs space-y-5">
+                <div className="flex items-center justify-between border-b pb-3">
+                  <div>
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-[#710001] flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[#710001]" />
+                      Cài đặt &amp; Ghi chú mục Xác nhận tham dự (RSVP)
+                    </h3>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                      Tùy chỉnh tiêu đề, lời cảm ơn và các dòng thông tin lưu ý (Bãi đỗ xe, Photobooth chụp ảnh...)
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-neutral-700">
+                    <input
+                      type="checkbox"
+                      checked={config.rsvp.enabled}
+                      onChange={(e) =>
+                        setConfig({
+                          ...config,
+                          rsvp: { ...config.rsvp, enabled: e.target.checked },
+                        })
+                      }
+                      className="rounded text-[#710001] w-4 h-4"
+                    />
+                    <span>Hiển thị mục này</span>
+                  </label>
                 </div>
 
-                <button
-                  onClick={handleExportRsvpCsv}
-                  className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-2 self-start sm:self-auto"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Xuất file Excel CSV (UTF-8)</span>
-                </button>
-              </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-700 mb-1">
+                        Tiêu đề mục (Title)
+                      </label>
+                      <input
+                        type="text"
+                        value={config.rsvp.title}
+                        onChange={(e) =>
+                          setConfig({
+                            ...config,
+                            rsvp: { ...config.rsvp, title: e.target.value },
+                          })
+                        }
+                        placeholder="Xác nhận tham dự"
+                        className="w-full p-2.5 bg-neutral-50 border border-neutral-300 rounded text-xs"
+                      />
+                    </div>
 
-              {/* Filters & Search */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 absolute left-3 top-3 text-neutral-400" />
-                  <input
-                    type="text"
-                    value={rsvpSearch}
-                    onChange={(e) => setRsvpSearch(e.target.value)}
-                    placeholder="Tìm theo tên khách mời hoặc số điện thoại..."
-                    className="w-full pl-9 pr-3 py-2 bg-neutral-50 border border-neutral-300 rounded text-xs"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-700 mb-1">
+                        Chữ trên nút gửi (Button Text)
+                      </label>
+                      <input
+                        type="text"
+                        value={config.rsvp.buttonText}
+                        onChange={(e) =>
+                          setConfig({
+                            ...config,
+                            rsvp: { ...config.rsvp, buttonText: e.target.value },
+                          })
+                        }
+                        placeholder="Gửi xác nhận"
+                        className="w-full p-2.5 bg-neutral-50 border border-neutral-300 rounded text-xs"
+                      />
+                    </div>
+                  </div>
 
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-neutral-400 shrink-0" />
-                  <select
-                    value={rsvpFilter}
-                    onChange={(e) => setRsvpFilter(e.target.value as any)}
-                    className="py-2 px-3 bg-neutral-50 border border-neutral-300 rounded text-xs text-neutral-700"
-                  >
-                    <option value="all">Tất cả trạng thái</option>
-                    <option value="attending">Sẽ tham dự</option>
-                    <option value="not_attending">Không thể tham dự</option>
-                  </select>
-                </div>
-              </div>
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-700 mb-1">
+                      Mô tả / Lời dẫn mời khách xác nhận
+                    </label>
+                    <input
+                      type="text"
+                      value={config.rsvp.description}
+                      onChange={(e) =>
+                        setConfig({
+                          ...config,
+                          rsvp: { ...config.rsvp, description: e.target.value },
+                        })
+                      }
+                      className="w-full p-2.5 bg-neutral-50 border border-neutral-300 rounded text-xs"
+                    />
+                  </div>
 
-              {/* RSVP Table */}
-              <div className="overflow-x-auto rounded-lg border border-neutral-200">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-neutral-100 text-neutral-600 font-semibold uppercase tracking-wider">
-                    <tr>
-                      <th className="p-3">Họ và tên</th>
-                      <th className="p-3">Số điện thoại</th>
-                      <th className="p-3">Trạng thái</th>
-                      <th className="p-3">Số khách</th>
-                      <th className="p-3">Khách của</th>
-                      <th className="p-3">Lời nhắn</th>
-                      <th className="p-3">Thời gian</th>
-                      <th className="p-3 text-right">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-200">
-                    {filteredRsvps.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="p-6 text-center text-neutral-400 italic">
-                          Chưa có phản hồi nào phù hợp.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredRsvps.map((rsvp) => (
-                        <tr key={rsvp.id} className="hover:bg-neutral-50 transition-colors">
-                          <td className="p-3 font-semibold text-neutral-900">{rsvp.guestName}</td>
-                          <td className="p-3 text-neutral-600">{rsvp.phone || '—'}</td>
-                          <td className="p-3">
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                                rsvp.attending === 'attending'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-rose-100 text-rose-800'
-                              }`}
-                            >
-                              {rsvp.attending === 'attending' ? 'Sẽ tham dự' : 'Không tham dự'}
+                  {/* Lời Cảm Ơn Từ Cô Dâu & Chú Rể */}
+                  <div className="p-4 bg-amber-50/50 border border-amber-200/80 rounded-xl space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Heart className="w-4 h-4 text-[#710001]" />
+                      <span className="text-xs font-bold text-[#710001] uppercase tracking-wider">
+                        Khung Lời Cảm Ơn Từ Cô Dâu &amp; Chú Rể
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-700 mb-1">
+                        Tiêu đề khung lời cảm ơn
+                      </label>
+                      <input
+                        type="text"
+                        value={config.rsvp.thankYouTitle ?? 'Lời Cảm Ơn Từ Cô Dâu & Chú Rể'}
+                        onChange={(e) =>
+                          setConfig({
+                            ...config,
+                            rsvp: { ...config.rsvp, thankYouTitle: e.target.value },
+                          })
+                        }
+                        placeholder="Lời Cảm Ơn Từ Cô Dâu & Chú Rể"
+                        className="w-full p-2.5 bg-white border border-neutral-300 rounded text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-700 mb-1">
+                        Nội dung tâm tình / Lời tri ân gửi khách mời
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={
+                          config.rsvp.thankYouMessage ??
+                          '“Cảm ơn bạn đã luôn là một phần thật đẹp trong chặng đường trưởng thành và tình yêu của chúng mình. Sự hiện diện và lời chúc phúc của bạn trong ngày trọng đại hôm nay chính là món quà ý nghĩa nhất. Chúng mình rất mong được cùng bạn sẻ chia và lưu giữ những khoảnh khắc hạnh phúc trọn vẹn này!”'
+                        }
+                        onChange={(e) =>
+                          setConfig({
+                            ...config,
+                            rsvp: { ...config.rsvp, thankYouMessage: e.target.value },
+                          })
+                        }
+                        className="w-full p-2.5 bg-white border border-neutral-300 rounded text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Ghi chú lưu ý & Tiện ích (Bãi đỗ xe, Photobooth chụp ảnh...) */}
+                  <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-xl space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <span className="text-xs font-bold text-neutral-800 uppercase tracking-wider block">
+                          Ghi chú lưu ý &amp; Tiện ích quan khách
+                        </span>
+                        <span className="text-[11px] text-neutral-500">
+                          Các dòng thông tin tiện ích (Bãi đỗ xe, Photobooth chụp ảnh, lưu ý đón tiếp...)
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentNotes = config.rsvp.notes || [
+                            'Bãi đỗ xe ô tô & xe máy an ninh, miễn phí tại tư gia',
+                            'Photobooth chụp ảnh mở cửa từ 11:00 đón tiếp quan khách',
+                          ];
+                          setConfig({
+                            ...config,
+                            rsvp: {
+                              ...config.rsvp,
+                              notes: [...currentNotes, ''],
+                            },
+                          });
+                        }}
+                        className="px-2.5 py-1.5 bg-[#710001] hover:bg-[#8e1012] text-white text-xs font-medium rounded transition-colors cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Thêm dòng ghi chú</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-2.5 pt-1">
+                      {(config.rsvp.notes ?? [
+                        'Bãi đỗ xe ô tô & xe máy an ninh, miễn phí tại tư gia',
+                        'Photobooth chụp ảnh mở cửa từ 11:00 đón tiếp quan khách',
+                      ]).map((note, index) => {
+                        const notesArray = config.rsvp.notes ?? [
+                          'Bãi đỗ xe ô tô & xe máy an ninh, miễn phí tại tư gia',
+                          'Photobooth chụp ảnh mở cửa từ 11:00 đón tiếp quan khách',
+                        ];
+
+                        return (
+                          <div key={index} className="flex items-center gap-2">
+                            <span className="text-[11px] font-mono text-neutral-500 w-5 shrink-0 text-center font-bold">
+                              #{index + 1}
                             </span>
-                          </td>
-                          <td className="p-3 font-medium text-neutral-800">
-                            {rsvp.attending === 'attending' ? `${rsvp.guestCount} người` : '—'}
-                          </td>
-                          <td className="p-3 text-neutral-600">
-                            {rsvp.side === 'groom' ? 'Nhà Trai' : rsvp.side === 'bride' ? 'Nhà Gái' : 'Bạn chung'}
-                          </td>
-                          <td className="p-3 text-neutral-600 max-w-xs truncate" title={rsvp.message}>
-                            {rsvp.message || '—'}
-                          </td>
-                          <td className="p-3 text-neutral-500 whitespace-nowrap">
-                            {new Date(rsvp.createdAt).toLocaleString('vi-VN')}
-                          </td>
-                          <td className="p-3 text-right">
+                            <input
+                              type="text"
+                              value={note}
+                              placeholder="Nhập ghi chú tiện ích (ví dụ: Bãi đỗ xe ô tô & xe máy...)"
+                              onChange={(e) => {
+                                const updated = [...notesArray];
+                                updated[index] = e.target.value;
+                                setConfig({
+                                  ...config,
+                                  rsvp: { ...config.rsvp, notes: updated },
+                                });
+                              }}
+                              className="flex-1 p-2 bg-white border border-neutral-300 rounded text-xs text-neutral-800"
+                            />
                             <button
-                              onClick={() => handleDeleteRsvp(rsvp.id)}
-                              className="text-rose-600 hover:text-rose-800 p-1 cursor-pointer"
-                              title="Xóa bản ghi"
+                              type="button"
+                              onClick={() => {
+                                const updated = notesArray.filter((_, i) => i !== index);
+                                setConfig({
+                                  ...config,
+                                  rsvp: { ...config.rsvp, notes: updated },
+                                });
+                              }}
+                              className="p-2 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                              title="Xóa dòng này"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-neutral-200/80 text-[11px] text-neutral-500">
+                      <span>💡 Các dòng này sẽ hiển thị trực tiếp trên thiệp ở khung Xác nhận tham dự</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfig({
+                            ...config,
+                            rsvp: {
+                              ...config.rsvp,
+                              notes: [
+                                'Bãi đỗ xe ô tô & xe máy an ninh, miễn phí tại tư gia',
+                                'Photobooth chụp ảnh mở cửa từ 11:00 đón tiếp quan khách',
+                              ],
+                            },
+                          });
+                        }}
+                        className="text-[#710001] hover:underline font-medium cursor-pointer"
+                      >
+                        Khôi phục 2 ghi chú gốc
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 2: DANH SÁCH KHÁCH MỜI PHẢN HỒI */}
+              <div className="bg-white p-6 rounded-xl border border-neutral-200 shadow-xs space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-[#710001]">
+                      Danh sách khách mời phản hồi ({filteredRsvps.length} bản ghi)
+                    </h3>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                      Quản lý danh sách xác nhận tham dự và số lượng khách mời
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleExportRsvpCsv}
+                    className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-2 self-start sm:self-auto"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Xuất file Excel CSV (UTF-8)</span>
+                  </button>
+                </div>
+
+                {/* Filters & Search */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 absolute left-3 top-3 text-neutral-400" />
+                    <input
+                      type="text"
+                      value={rsvpSearch}
+                      onChange={(e) => setRsvpSearch(e.target.value)}
+                      placeholder="Tìm theo tên khách mời hoặc số điện thoại..."
+                      className="w-full pl-9 pr-3 py-2 bg-neutral-50 border border-neutral-300 rounded text-xs"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-neutral-400 shrink-0" />
+                    <select
+                      value={rsvpFilter}
+                      onChange={(e) => setRsvpFilter(e.target.value as any)}
+                      className="py-2 px-3 bg-neutral-50 border border-neutral-300 rounded text-xs text-neutral-700"
+                    >
+                      <option value="all">Tất cả trạng thái</option>
+                      <option value="attending">Sẽ tham dự</option>
+                      <option value="not_attending">Không thể tham dự</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* RSVP Table */}
+                <div className="overflow-x-auto rounded-lg border border-neutral-200">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-neutral-100 text-neutral-600 font-semibold uppercase tracking-wider">
+                      <tr>
+                        <th className="p-3">Họ và tên</th>
+                        <th className="p-3">Số điện thoại</th>
+                        <th className="p-3">Trạng thái</th>
+                        <th className="p-3">Số khách</th>
+                        <th className="p-3">Khách của</th>
+                        <th className="p-3">Lời nhắn</th>
+                        <th className="p-3">Thời gian</th>
+                        <th className="p-3 text-right">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-200">
+                      {filteredRsvps.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="p-6 text-center text-neutral-400 italic">
+                            Chưa có phản hồi nào phù hợp.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        filteredRsvps.map((rsvp) => (
+                          <tr key={rsvp.id} className="hover:bg-neutral-50 transition-colors">
+                            <td className="p-3 font-semibold text-neutral-900">{rsvp.guestName}</td>
+                            <td className="p-3 text-neutral-600">{rsvp.phone || '—'}</td>
+                            <td className="p-3">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                                  rsvp.attending === 'attending'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-rose-100 text-rose-800'
+                                }`}
+                              >
+                                {rsvp.attending === 'attending' ? 'Sẽ tham dự' : 'Không tham dự'}
+                              </span>
+                            </td>
+                            <td className="p-3 font-medium text-neutral-800">
+                              {rsvp.attending === 'attending' ? `${rsvp.guestCount} người` : '—'}
+                            </td>
+                            <td className="p-3 text-neutral-600">
+                              {rsvp.side === 'groom' ? 'Nhà Trai' : rsvp.side === 'bride' ? 'Nhà Gái' : 'Bạn chung'}
+                            </td>
+                            <td className="p-3 text-neutral-600 max-w-xs truncate" title={rsvp.message}>
+                              {rsvp.message || '—'}
+                            </td>
+                            <td className="p-3 text-neutral-500 whitespace-nowrap">
+                              {new Date(rsvp.createdAt).toLocaleString('vi-VN')}
+                            </td>
+                            <td className="p-3 text-right">
+                              <button
+                                onClick={() => handleDeleteRsvp(rsvp.id)}
+                                className="text-rose-600 hover:text-rose-800 p-1 cursor-pointer"
+                                title="Xóa bản ghi"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}

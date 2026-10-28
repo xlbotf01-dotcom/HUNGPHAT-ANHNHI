@@ -8,6 +8,10 @@ coverage/
 !.env.example
 
 # dữ liệu chạy local (chứa mật khẩu đã mã hóa, RSVP của khách...) - KHÔNG đưa lên GitHub
-data/
-uploads/
+/data/
+/uploads/
 .vercel/
+
+# Đảm bảo source data cấu hình mặc định luôn được đưa lên Git
+!src/data/
+!src/data/**

@@ -141,11 +141,12 @@ export const RSVPSection: React.FC<RSVPSectionProps> = ({ config }) => {
                 <div className="flex items-center gap-2 mb-2">
                   <Heart className="w-3.5 h-3.5 text-[#e7c988] fill-current" />
                   <span className="text-[11px] font-['Tahoma',sans-serif] font-bold text-[#e7c988] uppercase tracking-wider">
-                    Lời Cảm Ơn Từ Cô Dâu &amp; Chú Rể
+                    {rsvp.thankYouTitle || 'Lời Cảm Ơn Từ Cô Dâu & Chú Rể'}
                   </span>
                 </div>
-                <p className="text-xs text-[#f4ded0]/90 font-['Be_Vietnam_Pro',sans-serif] leading-relaxed italic mb-3">
-                  “Cảm ơn bạn đã luôn là một phần thật đẹp trong chặng đường trưởng thành và tình yêu của chúng mình. Sự hiện diện và lời chúc phúc của bạn trong ngày trọng đại hôm nay chính là món quà ý nghĩa nhất. Chúng mình rất mong được cùng bạn sẻ chia và lưu giữ những khoảnh khắc hạnh phúc trọn vẹn này!”
+                <p className="text-xs text-[#f4ded0]/90 font-['Be_Vietnam_Pro',sans-serif] leading-relaxed italic mb-3 whitespace-pre-line">
+                  {rsvp.thankYouMessage ||
+                    '“Cảm ơn bạn đã luôn là một phần thật đẹp trong chặng đường trưởng thành và tình yêu của chúng mình. Sự hiện diện và lời chúc phúc của bạn trong ngày trọng đại hôm nay chính là món quà ý nghĩa nhất. Chúng mình rất mong được cùng bạn sẻ chia và lưu giữ những khoảnh khắc hạnh phúc trọn vẹn này!”'}
                 </p>
                 <div className="flex justify-end items-center gap-1.5 text-[11px] font-['Tahoma',sans-serif] font-bold text-[#e7c988]">
                   <span>Thân thương,</span>
@@ -156,14 +157,18 @@ export const RSVPSection: React.FC<RSVPSectionProps> = ({ config }) => {
 
               {/* Useful Details */}
               <div className="space-y-2 text-xs text-[#f4ded0]/85 font-['Be_Vietnam_Pro',sans-serif] text-left">
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#e7c988]" />
-                  <span>Bãi đỗ xe ô tô &amp; xe máy an ninh, miễn phí tại tư gia</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#e7c988]" />
-                  <span>Photobooth chụp ảnh mở cửa từ 11:00 đón tiếp quan khách</span>
-                </div>
+                {(rsvp.notes && rsvp.notes.length > 0
+                  ? rsvp.notes
+                  : [
+                      'Bãi đỗ xe ô tô & xe máy an ninh, miễn phí tại tư gia',
+                      'Photobooth chụp ảnh mở cửa từ 11:00 đón tiếp quan khách',
+                    ]
+                ).map((note, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#e7c988] shrink-0" />
+                    <span>{note}</span>
+                  </div>
+                ))}
               </div>
             </div>
 

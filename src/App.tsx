@@ -15,7 +15,6 @@ import { ClosingSection } from './components/ClosingSection';
 import { MusicPlayer, MusicPlayerHandle } from './components/MusicPlayer';
 import { AdminLogin } from './admin/AdminLogin';
 import { AdminDashboard } from './admin/AdminDashboard';
-import { Settings, RefreshCw } from 'lucide-react';
 
 export function App() {
   const [config, setConfig] = useState<WeddingConfig>(defaultWeddingConfig);

@@ -110,6 +110,9 @@ export interface WeddingConfig {
     buttonText: string;
     allowDietary: boolean;
     allowGuestCount: boolean;
+    thankYouTitle?: string;
+    thankYouMessage?: string;
+    notes?: string[];
   };
   wishes: {
     enabled: boolean;

@@ -76,9 +76,12 @@ export const MusicPlayer = forwardRef<MusicPlayerHandle, MusicPlayerProps>(({ co
     <>
       <audio
         ref={audioRef}
-        src={music.audioUrl || '/audio/mai-mai-ben-nhau.mp3'}
+        src={music.audioUrl || ''}
         preload="auto"
         loop={music.loop ?? true}
+        onError={() => {
+          setIsPlaying(false);
+        }}
       />
 
       {/* Floating Music Control */}
