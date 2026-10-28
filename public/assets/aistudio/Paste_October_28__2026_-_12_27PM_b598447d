@@ -1,0 +1,1520 @@
+# PROJECT: PREMIUM VIETNAMESE ONLINE WEDDING INVITATION WITH ADMIN CMS
+
+## 1. YOUR ROLE
+
+Act as a senior full-stack developer, premium wedding website designer, UI/UX specialist, frontend animation engineer, and database architect.
+
+Build a complete, production-oriented Vietnamese online wedding invitation website inspired by the two attached reference files.
+
+This is a real application, not a static mockup, UI concept, landing page screenshot, or prototype.
+
+You must implement:
+- A visually faithful recreation of the supplied wedding invitation design.
+- An elegant interactive wedding card opening experience.
+- Background music that starts when the guest opens the invitation.
+- A complete, responsive, long-form wedding invitation website.
+- A protected administration dashboard accessible at `/admin`.
+- A content management system that allows the owner to edit every invitation section.
+- Dynamic image management through image URLs.
+- Persistent data storage so that administrative changes remain available after refreshing the website.
+- A complete wedding RSVP experience.
+- Functional navigation, animations, countdown, map, gallery, and other interactive elements.
+
+Do not stop after generating the homepage.
+
+Inspect both attached files carefully before implementing the design.
+
+Use the supplied HTML and source file as the primary visual and structural references. Preserve their defining design language, content hierarchy, layout proportions, and wedding atmosphere.
+
+The provided files may contain compiled asset references or incomplete source code. If an original image, stylesheet, font, or JavaScript bundle is unavailable, recreate the corresponding visual element as closely as possible. Never leave broken images or missing sections merely because an original asset is inaccessible.
+
+Do not copy unrelated branding, domain names, personal contact information, or example wedding details into the production configuration. Example names and information must be editable through the administration dashboard.
+
+---
+
+# 2. DESIGN DIRECTION: FOLLOW THE REFERENCE CLOSELY
+
+The design must closely reproduce the visual direction of the attached reference.
+
+Do not replace it with a generic wedding template.
+
+## 2.1. Core visual identity
+
+Use a premium Vietnamese traditional wedding aesthetic combined with modern web design.
+
+Primary colors:
+- Burgundy red: approximately #681B29.
+- Deep oxblood: approximately #4A111D.
+- Warm cream paper: approximately #F7F0E5.
+- Antique gold: approximately #C8A45D.
+- Dark wine-colored typography: approximately #571925.
+- Muted warm gray for secondary text.
+
+These are initial design tokens and may be adjusted slightly to achieve a closer match to the reference.
+
+The design should communicate:
+- Traditional Vietnamese wedding elegance.
+- Happiness, celebration, family, and togetherness.
+- A refined, premium, romantic atmosphere.
+- A contemporary aesthetic suitable for young couples.
+
+## 2.2. Decorative elements
+
+Recreate the visual characteristics of the reference:
+- Traditional double-happiness symbols: 囍.
+- Delicate gold ornamental lines.
+- Red circular wedding seals.
+- Dragon and phoenix wedding motifs.
+- Fine floral illustrations.
+- Cream paper textures.
+- Burgundy invitation cards.
+- Elegant calligraphic couple names.
+- Subtle floating petals and celebratory particles.
+- Carefully positioned decorative elements.
+- Refined transitions between sections.
+
+Use decorative elements selectively.
+
+Avoid:
+- Excessive gold gradients.
+- Cheap-looking glitter.
+- Oversized cartoon hearts.
+- Generic pink wedding templates.
+- Excessive animations that distract from the photographs.
+- Unnecessary UI panels on the public invitation.
+- Random decorative elements that do not match the reference.
+
+The invitation must feel like a beautifully designed physical wedding card brought to life digitally.
+
+## 2.3. Typography
+
+Use an elegant combination of:
+- A calligraphic or handwritten font for the couple's names.
+- A refined serif font for major headings.
+- A highly readable font for Vietnamese body text.
+- A restrained uppercase font with generous letter spacing for English labels such as SAVE THE DATE and R.S.V.P.
+
+Use fonts with reliable Vietnamese diacritic support.
+
+If suitable local font files are supplied, use them where licensing permits. Otherwise, choose appropriate web fonts and provide sensible fallbacks.
+
+Ensure that Vietnamese characters render correctly on Windows, Android, iOS, and desktop browsers.
+
+---
+
+# 3. USER EXPERIENCE: OPEN THE WEDDING INVITATION
+
+The first screen is one of the most important parts of the website.
+
+Create a full-screen opening experience that resembles the reference wedding card.
+
+## 3.1. Initial screen
+
+Before the guest opens the invitation, display:
+- A deep burgundy background.
+- A subtle field of floating or gently animated 囍 symbols.
+- A centered wedding invitation card.
+- A traditional dragon-phoenix decorative illustration.
+- A small circular wedding seal.
+- A short Vietnamese invitation label.
+- The bride's name.
+- An elegant ampersand.
+- The groom's name.
+- The wedding date and time.
+- A guest greeting.
+- A short invitation sentence.
+- A prominent button labeled "Mở thiệp".
+
+All text must be editable in the admin dashboard.
+
+The initial screen should look excellent on both portrait mobile screens and desktop displays.
+
+On desktop, center the card within a generous burgundy background.
+
+On mobile, make the card fit naturally within the viewport without clipping its content or button.
+
+## 3.2. Opening interaction
+
+When the guest clicks "Mở thiệp":
+
+1. Play an elegant opening animation.
+2. Transition smoothly from the closed invitation card to the main wedding website.
+3. Start the selected background music.
+4. Reveal the invitation content with subtle motion.
+5. Prevent accidental duplicate opening transitions.
+6. Ensure the guest can scroll naturally after the transition.
+
+Use a refined animation lasting approximately 700–1500 milliseconds, adjusting as needed for visual quality.
+
+The opening should feel ceremonial and memorable, not like a loading screen.
+
+Do not require a page reload when opening the invitation.
+
+## 3.3. Background music
+
+Implement actual playable background music.
+
+Requirements:
+- Allow the administrator to enter a direct audio URL.
+- Support common browser-compatible audio formats such as MP3 and OGG.
+- Allow the administrator to enable or disable music.
+- Allow the administrator to configure the initial volume.
+- Loop the music when enabled.
+- Provide a discreet music control that allows guests to pause, resume, mute, and unmute the audio.
+- Display a suitable music-playing or music-paused icon.
+- Preserve the selected music configuration when the website reloads.
+
+IMPORTANT BROWSER RESTRICTION:
+
+Modern browsers commonly block autoplay with sound before a user interaction.
+
+Therefore, initiate audio playback from the guest's actual click on "Mở thiệp". Handle rejected playback promises gracefully.
+
+Do not attempt to bypass browser autoplay restrictions.
+
+If playback fails, keep the invitation usable and let the guest start the music through the visible music control.
+
+Do not start music unexpectedly before the guest opens the card.
+
+---
+
+# 4. MAIN WEDDING INVITATION WEBSITE
+
+After the invitation is opened, render a complete, vertically scrollable wedding website.
+
+The following sections must be implemented as separate, maintainable components.
+
+The administrator must be able to edit their content, images, visibility, and ordering where applicable.
+
+## SECTION 1: SAVE THE DATE HERO
+
+Recreate the reference's cream-paper hero section.
+
+Include:
+- A small uppercase SAVE THE DATE label.
+- The wedding date.
+- An elegant display of the couple's names.
+- A subtle floral illustration.
+- A burgundy ceremony ribbon or panel.
+- A central 囍 symbol.
+- A short romantic Vietnamese quote.
+- A concise ceremony label.
+
+Use balanced typography and generous negative space.
+
+The hero must not be overcrowded.
+
+The couple's names should be a visual focal point.
+
+Allow the administrator to edit:
+- The label.
+- Both names.
+- The date.
+- The ceremony title.
+- The romantic quotation.
+- Decorative image URLs.
+- Text alignment.
+- Section visibility.
+
+## SECTION 2: WEDDING INVITATION AND FAMILY INFORMATION
+
+Create an elegant invitation section that introduces the two families.
+
+Include:
+- A heading such as "Thư mời tiệc cưới".
+- A short formal invitation.
+- A configurable guest greeting.
+- A "Thông tin lễ cưới" heading.
+- The groom's family information.
+- The bride's family information.
+- Parent names.
+- Family addresses.
+- The couple's full names.
+- The wedding ceremony title.
+- The wedding date.
+- The wedding time.
+- The lunar date, if supplied.
+- A wedding schedule or event timeline.
+
+Present the two families in a balanced two-column layout on desktop and a clean stacked layout on mobile.
+
+Use traditional ornamental separators and subtle gold details.
+
+All information must be dynamically editable.
+
+Do not hardcode the example names, dates, addresses, or family details from the supplied HTML.
+
+The administrator must be able to edit each individual field independently.
+
+## SECTION 3: WEDDING SCHEDULE
+
+Create a visually elegant wedding timeline.
+
+Each event must have:
+- Event title.
+- Start time.
+- Optional end time.
+- Optional description.
+- Optional location.
+- Optional image.
+- Visibility toggle.
+
+Allow the administrator to:
+- Add an event.
+- Edit an event.
+- Delete an event.
+- Reorder events.
+- Change times and descriptions.
+
+Display the timeline in chronological order by default.
+
+Example events may include:
+- Đón khách.
+- Chụp ảnh photobooth.
+- Làm lễ.
+- Khai tiệc.
+- Chương trình giao lưu.
+- Tiệc tối.
+
+These are examples only, not fixed events.
+
+Use elegant separators, small icons, and restrained animations.
+
+## SECTION 4: COUPLE PORTRAITS
+
+Create a refined photographic section featuring the bride and groom.
+
+Include:
+- A groom portrait.
+- A bride portrait.
+- Optional captions.
+- Optional short romantic quotation.
+
+The administrator must be able to enter a separate image URL for each portrait.
+
+Support:
+- Image URL.
+- Alternative text.
+- Image focal point.
+- Image aspect ratio.
+- Optional caption.
+- Image visibility.
+
+Use object-fit and object-position appropriately so portraits do not become distorted or unnecessarily cropped.
+
+On mobile, arrange the portraits in a beautiful vertical or balanced compact layout.
+
+## SECTION 5: WEDDING VENUE AND ADDRESS
+
+Create a section for the wedding venue.
+
+Include:
+- A heading such as "Địa điểm tiệc cưới".
+- Venue name.
+- Venue address.
+- Optional additional directions.
+- A map.
+- A button labeled "Xem chỉ đường".
+
+Allow the administrator to configure:
+- Venue name.
+- Full address.
+- Google Maps URL.
+- Optional Google Maps embed URL.
+- Latitude and longitude, if applicable.
+- Directions link.
+
+If a valid map embed URL is available, display the map responsively.
+
+If no embed URL is configured, show a tasteful venue information card and a button that opens the configured map or directions URL.
+
+Never display an empty or broken map iframe.
+
+Do not require a Google Maps API key for a simple Google Maps link or supported embed URL.
+
+## SECTION 6: WEDDING COUNTDOWN
+
+Create an elegant countdown to the wedding date and time.
+
+Display:
+- Days.
+- Hours.
+- Minutes.
+- Seconds.
+
+Requirements:
+- Calculate the countdown dynamically.
+- Use the configured wedding date and time.
+- Interpret the configured time in the selected wedding timezone.
+- Use Asia/Ho_Chi_Minh as the default timezone.
+- Update the countdown every second.
+- Handle invalid dates gracefully.
+- When the wedding time has passed, display a configurable completed-wedding message instead of negative numbers.
+
+Do not hardcode a countdown date into the source code.
+
+The countdown must update automatically when the administrator changes the wedding date or time.
+
+## SECTION 7: WEDDING CALENDAR
+
+Create an elegant monthly calendar highlighting the wedding date.
+
+Include:
+- Month.
+- Year.
+- Correct weekday alignment.
+- Correct number of days in the month.
+- A decorative heart or wedding symbol on the selected date.
+
+The calendar must update when the administrator changes the wedding date.
+
+Do not use a static screenshot as the calendar.
+
+## SECTION 8: WEDDING PHOTO GALLERY
+
+Create a premium photographic gallery inspired by the attached reference.
+
+The gallery may include:
+- A large background photograph.
+- Two overlapping or offset photo boards.
+- A refined collage layout.
+- Carefully controlled cropping.
+- A subtle overlay where appropriate.
+- A smooth image reveal animation.
+
+The administrator must be able to manage multiple gallery images.
+
+Each image should support:
+- Image URL.
+- Alternative text.
+- Caption.
+- Display order.
+- Visibility.
+
+Allow adding, editing, deleting, and reordering gallery images.
+
+Use a responsive grid or collage that preserves the artistic appearance on mobile.
+
+Clicking a gallery image should open a lightbox with:
+- A larger image.
+- Previous and next navigation.
+- A close button.
+- Keyboard support on desktop.
+- Touch-friendly navigation on mobile.
+
+Allow the administrator to configure the gallery's layout and number of displayed images where practical.
+
+## SECTION 9: RSVP — WEDDING ATTENDANCE CONFIRMATION
+
+Create a beautiful RSVP section.
+
+Include:
+- An R.S.V.P. label.
+- A heading such as "Xác nhận tham dự".
+- A short explanation.
+- A button labeled "Gửi xác nhận".
+- An elegant modal or dialog containing the actual RSVP form.
+
+The form should include:
+- Guest name.
+- Phone number, optional.
+- Attendance status.
+- Number of attendees, if enabled.
+- Optional message to the couple.
+- Optional dietary notes.
+
+Suggested attendance choices:
+- Tôi sẽ tham dự.
+- Rất tiếc, tôi không thể tham dự.
+
+The administrator must be able to configure which fields are visible and required.
+
+Validate the form before submission.
+
+Display clear Vietnamese success and error messages.
+
+Persist RSVP submissions in the database.
+
+The administration dashboard must display received RSVP records, including:
+- Guest name.
+- Phone number, if provided.
+- Attendance status.
+- Number of attendees, if enabled.
+- Message.
+- Submission time.
+
+Provide basic search and filtering.
+
+Allow the administrator to export RSVP records as CSV.
+
+Do not expose guest phone numbers or private RSVP messages publicly.
+
+Implement reasonable abuse protection and server-side validation.
+
+## SECTION 10: WEDDING WISHES
+
+Create a section where guests can leave short congratulatory messages.
+
+Include:
+- A decorative envelope illustration.
+- A heading such as "Gửi lời chúc tới cô dâu chú rể".
+- A message form.
+- A guest name field.
+- A message field.
+- A submit button.
+
+Persist messages in the database.
+
+Protect this feature against spam and malicious content.
+
+Guest messages must not be rendered as executable HTML.
+
+By default, new messages should require administrator approval before appearing publicly.
+
+Allow the administrator to approve, hide, or delete messages.
+
+If this feature is disabled in the admin dashboard, hide it completely from the public website.
+
+## SECTION 11: CLOSING WEDDING SECTION
+
+Create an emotional closing section.
+
+Include:
+- A large couple portrait.
+- A short romantic quotation.
+- An optional host or family representative name.
+- An optional secondary line.
+- A closing invitation such as "Trân trọng kính mời!".
+
+Allow all text and images to be changed from the administration dashboard.
+
+Finish with an elegant visual transition rather than a generic website footer.
+
+---
+
+# 5. ANIMATIONS AND INTERACTIONS
+
+Animations are important to the wedding experience.
+
+Implement smooth, carefully controlled effects such as:
+- Invitation opening animation.
+- Floating 囍 symbols.
+- Subtle floating petals.
+- Gentle image reveal effects.
+- Scroll-triggered fade and slide animations.
+- Soft transitions between visual sections.
+- Elegant hover states.
+- Lightbox transitions.
+- RSVP dialog transitions.
+- Countdown updates.
+- Smooth scrolling when appropriate.
+
+Use CSS transitions, CSS keyframes, and IntersectionObserver where appropriate.
+
+Avoid unnecessary animation libraries if native browser features are sufficient.
+
+Performance requirements:
+- Do not animate expensive layout properties continuously.
+- Avoid excessive particle counts.
+- Respect the prefers-reduced-motion accessibility setting.
+- Prevent scroll locking problems.
+- Ensure animations do not cause text to disappear permanently if JavaScript fails.
+- Avoid animations that make mobile devices lag.
+
+The website must remain fully usable when reduced motion is enabled.
+
+---
+
+# 6. RESPONSIVE DESIGN
+
+The website must be mobile-first and fully responsive.
+
+Support:
+- Small mobile phones.
+- Large mobile phones.
+- Tablets.
+- Laptops.
+- Desktop monitors.
+
+Use responsive CSS layouts and appropriate breakpoints.
+
+Important mobile requirements:
+- The opening invitation card must fit the viewport.
+- The "Mở thiệp" button must remain visible and easy to tap.
+- Names must not overflow their containers.
+- Long Vietnamese family names must wrap gracefully.
+- Gallery images must remain attractive.
+- RSVP dialogs must fit the screen.
+- Buttons must have comfortable touch targets.
+- The music control must remain accessible.
+- The admin dashboard must remain usable on mobile, even if some tables require horizontal scrolling.
+
+Avoid horizontal overflow.
+
+Test the layout at approximately 360px, 390px, 768px, 1024px, and 1440px viewport widths.
+
+---
+
+# 7. ADMINISTRATION DASHBOARD: /admin
+
+This is a critical requirement.
+
+Implement a separate administration interface at:
+
+/admin
+
+Example:
+https://your-domain.com/admin
+
+The public invitation must remain accessible at the root URL:
+
+/
+
+Do not create a separate hardcoded wedding page for every change.
+
+The public invitation and admin dashboard must use the same persistent wedding configuration.
+
+## 7.1. Admin design
+
+Create a clean, professional Vietnamese administration dashboard.
+
+Use:
+- A light neutral background.
+- Clear navigation.
+- Well-organized forms.
+- Section cards.
+- Save buttons.
+- Preview controls.
+- Loading states.
+- Success and error notifications.
+
+The admin interface must be functional rather than decorative.
+
+Suggested sidebar navigation:
+
+1. Tổng quan
+2. Thông tin cô dâu chú rể
+3. Thiệp mở đầu
+4. Nội dung trang chủ
+5. Thông tin hai gia đình
+6. Ngày giờ và lịch trình
+7. Hình ảnh
+8. Địa điểm và bản đồ
+9. Nhạc nền
+10. Màu sắc và giao diện
+11. Hiệu ứng
+12. Xác nhận tham dự
+13. Lời chúc
+14. SEO và chia sẻ
+15. Cài đặt hệ thống
+
+The administrator should be able to navigate directly to any section.
+
+## 7.2. Admin authentication
+
+The `/admin` URL is a management route, not a substitute for security.
+
+Implement proper authentication.
+
+Requirements:
+- Require administrator login before showing management data.
+- Use Firebase Authentication or another properly configured authentication provider.
+- Prefer administrator accounts explicitly authorized by the application owner.
+- Do not provide a public administrator registration page.
+- Do not hardcode passwords in frontend source code.
+- Do not store administrator passwords in localStorage.
+- Protect database access using server-side or database security rules.
+- Verify administrator authorization before allowing privileged operations.
+- Provide logout functionality.
+- Handle expired sessions safely.
+
+An unauthenticated visitor who opens `/admin` must see the login screen rather than the dashboard.
+
+Do not assume that hiding the admin link is sufficient protection.
+
+If authentication credentials or backend configuration are missing, explain the required setup instead of pretending the dashboard is secure.
+
+## 7.3. Admin dashboard overview
+
+Display useful information such as:
+- Wedding couple names.
+- Wedding date.
+- Website publication status.
+- Number of RSVP submissions.
+- Number of guests confirming attendance, when the data is available.
+- Number of pending wedding wishes.
+- Last configuration update.
+
+Provide quick links to frequently used management sections.
+
+Do not fabricate statistics.
+
+---
+
+# 8. COMPLETE CONTENT MANAGEMENT SYSTEM
+
+The owner must be able to manage the invitation without editing source code.
+
+All editable content must be stored in a persistent database.
+
+## 8.1. Editable text
+
+Provide editable fields for:
+- Bride's display name.
+- Groom's display name.
+- Bride's full name.
+- Groom's full name.
+- Wedding date.
+- Wedding time.
+- Invitation title.
+- Guest greeting.
+- Hero quotation.
+- Ceremony title.
+- Family names.
+- Parent names.
+- Family addresses.
+- Wedding venue.
+- Venue address.
+- Timeline event titles.
+- Timeline descriptions.
+- Section headings.
+- Romantic quotations.
+- Closing message.
+- Host name.
+- SEO title.
+- SEO description.
+- Social sharing title.
+- Social sharing description.
+
+Every text field must support Vietnamese Unicode characters.
+
+## 8.2. Editable images
+
+The administrator must be able to change images by entering an image URL.
+
+Provide separate URL fields for:
+- Opening card illustration.
+- Opening card decorative artwork.
+- Hero floral decoration.
+- Hero background image, if enabled.
+- Groom portrait.
+- Bride portrait.
+- Main couple portrait.
+- Venue photograph.
+- Gallery background.
+- Every gallery image.
+- Closing portrait.
+- Decorative illustrations.
+- Social sharing image.
+
+Each image field should provide:
+- URL input.
+- Preview.
+- Apply or save action.
+- Validation feedback.
+- Reset-to-default option, where applicable.
+
+When the URL changes, show a preview of the new image before the administrator saves it.
+
+Handle:
+- Invalid URLs.
+- Unreachable images.
+- Unsupported image formats.
+- Empty values.
+- Slow-loading images.
+
+If an image URL fails, show a graceful placeholder in the admin preview.
+
+Do not silently replace a failed image with an unrelated photograph.
+
+The administrator must be able to configure image positioning where practical, especially for portraits and backgrounds.
+
+Use object-position or background-position to control cropping.
+
+## 8.3. Image URL handling
+
+Support publicly accessible image URLs.
+
+Examples of suitable sources include:
+- Public HTTPS image URLs.
+- Images hosted on the owner's website.
+- Supported public image hosting services.
+- Firebase Storage download URLs, if configured.
+
+Explain that a URL to a private Google Drive file or a private social media image may not work directly as an image source.
+
+Do not assume every URL copied from a website is a direct image URL.
+
+Validate that the configured URL uses HTTPS in production unless an explicitly permitted development exception applies.
+
+## 8.4. Music configuration
+
+Allow the administrator to:
+- Enter an audio URL.
+- Preview the audio.
+- Play and pause the preview.
+- Enable or disable background music.
+- Configure volume.
+- Configure looping.
+- Save the configuration.
+
+The selected audio must be used by the public invitation after the guest clicks "Mở thiệp".
+
+## 8.5. Section management
+
+For every major public invitation section, provide:
+- Enable/disable toggle.
+- Editable heading.
+- Editable text.
+- Image URL fields where relevant.
+- Display-order controls where applicable.
+- Save action.
+
+Allow the administrator to hide optional sections without deleting their content.
+
+The public website must reflect the saved section visibility settings.
+
+## 8.6. Wedding configuration
+
+Provide a clear date and time editor.
+
+Requirements:
+- Date picker.
+- Time picker.
+- Timezone configuration.
+- Venue information.
+- Family information.
+- Timeline event editor.
+- Countdown configuration.
+- Calendar configuration.
+
+When a setting changes, every dependent section must update consistently.
+
+For example, changing the wedding date must update:
+- Opening card date.
+- SAVE THE DATE section.
+- Wedding schedule.
+- Countdown.
+- Calendar.
+- Relevant SEO and sharing text, if configured to use the date.
+
+Do not require the administrator to edit the same date manually in multiple places.
+
+Use a single canonical wedding date and time in the configuration.
+
+---
+
+# 9. ADMIN CONTENT EDITING WORKFLOW
+
+Implement a reliable editing workflow.
+
+For each management section:
+
+1. Load the saved configuration.
+2. Display the current values.
+3. Allow editing.
+4. Validate the input.
+5. Preview applicable changes.
+6. Save changes to the database.
+7. Display a clear success or error message.
+8. Refresh or update the relevant public website content.
+9. Preserve the saved configuration after a page reload.
+
+Do not discard unsaved changes silently.
+
+If the administrator navigates away with unsaved edits, warn them before leaving.
+
+Provide:
+- Save button.
+- Cancel button.
+- Reset-to-saved-values action.
+- Optional unsaved-changes indicator.
+
+Do not automatically overwrite the saved configuration with default values when an API request fails.
+
+Handle concurrent changes and database errors gracefully.
+
+---
+
+# 10. PUBLIC WEBSITE PREVIEW
+
+Implement a preview feature inside the administration dashboard.
+
+The administrator should be able to:
+- Preview the opening invitation.
+- Preview the complete invitation.
+- Preview changes before publishing.
+- Open the public invitation in a new tab.
+
+Where practical, provide desktop and mobile preview modes.
+
+A preview must use the current edited configuration.
+
+If unsaved changes are present, allow the administrator to preview them without accidentally publishing them.
+
+Separate draft configuration from published configuration if implementing a draft/publish workflow.
+
+If a simpler single-save workflow is used, clearly indicate that saving updates the public invitation.
+
+Do not build a preview button that merely links to the same unchanged static page.
+
+---
+
+# 11. TECHNICAL ARCHITECTURE
+
+Choose a maintainable architecture that can be developed in Google AI Studio and deployed to a supported hosting platform.
+
+Preferred frontend:
+- React.
+- TypeScript.
+- Vite, or another appropriate supported React setup.
+- Modular components.
+- CSS Modules, organized CSS, or a suitable styling system.
+
+Use the framework and project structure supported by the actual development environment. Do not force an incompatible setup merely to match this specification.
+
+Suggested component structure:
+
+src/
+  components/
+    InvitationCover
+    WeddingHero
+    FamilyInformation
+    WeddingTimeline
+    CouplePortraits
+    WeddingVenue
+    WeddingCountdown
+    WeddingCalendar
+    WeddingGallery
+    RSVPSection
+    WeddingWishes
+    ClosingSection
+    MusicPlayer
+
+  admin/
+    AdminLogin
+    AdminLayout
+    AdminDashboard
+    CoupleEditor
+    CoverEditor
+    FamilyEditor
+    TimelineEditor
+    ImageEditor
+    GalleryEditor
+    VenueEditor
+    MusicEditor
+    AppearanceEditor
+    RSVPManager
+    WishesManager
+    SEOEditor
+    SettingsEditor
+
+  services/
+    weddingConfigService
+    imageValidationService
+    rsvpService
+    weddingWishesService
+    authenticationService
+
+  types/
+    wedding
+    rsvp
+    weddingWish
+
+  styles/
+    designTokens
+    animations
+    responsive
+
+This is a suggested organization, not a requirement to create empty files for every item.
+
+Only create components and services that are actually needed.
+
+## 11.1. Persistent backend
+
+Use Firebase as the preferred backend if it is compatible with the selected hosting and development environment.
+
+Potential services:
+- Firebase Authentication for administrator login.
+- Cloud Firestore for wedding configuration, RSVP records, and wedding wishes.
+- Firebase Storage only if file uploads are later needed.
+
+The initial image-management workflow must support image URLs without requiring uploads.
+
+Store the wedding configuration as structured data.
+
+Suggested logical collections:
+- weddingConfig
+- rsvpSubmissions
+- weddingWishes
+- adminSettings
+
+The exact schema may differ if a more suitable structure is selected.
+
+Implement:
+- Persistent reads and writes.
+- Loading and error states.
+- Database validation.
+- Proper authorization.
+- Secure access rules.
+- A safe initialization process.
+
+Do not place Firebase Admin SDK credentials, private service account keys, or other server secrets in frontend code.
+
+If a trusted server component is needed for a privileged operation, implement it through an appropriate secure backend.
+
+## 11.2. Alternative backend
+
+If Firebase cannot be configured in the current environment, explain the exact missing configuration and propose a compatible persistent backend.
+
+Do not silently substitute localStorage for a real shared database.
+
+localStorage may be used for non-sensitive temporary interface preferences, but not as the authoritative storage for a production wedding CMS.
+
+A purely local demo must be clearly identified as a demo and must not be represented as a deployed, persistent, multi-user application.
+
+## 11.3. Environment configuration
+
+Use environment variables for public application configuration where appropriate.
+
+Create an `.env.example` containing placeholder values.
+
+Never include real secrets in the generated source code.
+
+Document the required environment variables and setup steps.
+
+Do not claim that authentication, database access, or deployment is fully configured if the required credentials have not been provided.
+
+---
+
+# 12. DATA MODEL
+
+Create a well-defined TypeScript data model.
+
+The wedding configuration should contain structured fields for the following logical groups.
+
+## Couple
+
+- brideDisplayName
+- groomDisplayName
+- brideFullName
+- groomFullName
+- weddingDate
+- weddingTime
+- timezone
+
+## Invitation cover
+
+- enabled
+- invitationLabel
+- guestGreeting
+- invitationMessage
+- coverImageUrl
+- decorativeImageUrl
+- sealText
+
+## Hero
+
+- enabled
+- label
+- heading
+- ceremonyTitle
+- quote
+- floralImageUrl
+- backgroundImageUrl
+
+## Families
+
+- groomFamilyHeading
+- groomParents
+- groomFamilyAddress
+- brideFamilyHeading
+- brideParents
+- brideFamilyAddress
+
+## Ceremony
+
+- ceremonyTitle
+- weddingDate
+- weddingTime
+- lunarDate
+- timezone
+
+Avoid duplicating the canonical wedding date if it can be derived from the Couple configuration.
+
+## Timeline
+
+A list of events containing:
+- id
+- title
+- startTime
+- endTime
+- description
+- location
+- imageUrl
+- enabled
+- order
+
+## Couple photographs
+
+- groomPortraitUrl
+- bridePortraitUrl
+- couplePortraitUrl
+- portraitCaptions
+
+## Venue
+
+- venueName
+- venueAddress
+- mapUrl
+- mapEmbedUrl
+- directionsUrl
+- latitude
+- longitude
+
+## Gallery
+
+A list of items containing:
+- id
+- imageUrl
+- altText
+- caption
+- enabled
+- order
+
+## Music
+
+- enabled
+- audioUrl
+- volume
+- loop
+
+## Appearance
+
+- primaryColor
+- backgroundColor
+- textColor
+- accentColor
+- headingFont
+- bodyFont
+- animationEnabled
+- reducedMotionSupport
+
+## Section settings
+
+A structured list of sections containing:
+- sectionId
+- enabled
+- order
+
+## Closing section
+
+- portraitUrl
+- quote
+- hostName
+- hostSubtitle
+- closingMessage
+
+## SEO
+
+- pageTitle
+- metaDescription
+- socialTitle
+- socialDescription
+- socialImageUrl
+
+Validate all data before rendering it.
+
+Use sensible defaults for optional fields.
+
+Do not crash if some optional information has not yet been filled in.
+
+---
+
+# 13. SECURITY REQUIREMENTS
+
+Security is mandatory because the website contains a private administration interface.
+
+Implement the following:
+
+1. Protect `/admin` with authentication.
+2. Verify administrator permissions.
+3. Use restrictive database security rules.
+4. Validate input on the server or at the trusted database boundary where appropriate.
+5. Do not trust frontend checks alone.
+6. Prevent unauthorized public modification of wedding configuration.
+7. Prevent unauthorized access to private RSVP data.
+8. Prevent unauthorized approval or deletion of wedding wishes.
+9. Avoid rendering user-submitted HTML.
+10. Avoid storing passwords in localStorage.
+11. Never expose private server credentials.
+12. Avoid logging sensitive guest data unnecessarily.
+13. Use appropriate rate limiting or abuse protection for public forms.
+14. Handle expired authentication sessions.
+15. Ensure that the public invitation can read only the data it needs.
+
+Guests should not need to log in to view the invitation.
+
+Only authorized administrators should be able to modify wedding content or access private RSVP records.
+
+Do not treat the obscurity of the `/admin` URL as a security measure.
+
+---
+
+# 14. PERFORMANCE AND RELIABILITY
+
+The wedding invitation must load quickly and remain smooth on mobile devices.
+
+Implement:
+- Lazy loading for below-the-fold photographs.
+- Appropriate image dimensions and aspect ratios.
+- Reserved image space to reduce layout shifts.
+- Efficient animations.
+- Proper component lifecycle management.
+- Cleanup for timers and event listeners.
+- Graceful error handling.
+- Responsive image presentation.
+- Appropriate caching behavior.
+- Semantic HTML.
+- Accessible controls.
+
+Avoid:
+- Loading every gallery image eagerly.
+- Excessive JavaScript.
+- Unnecessary repeated database requests.
+- Repeated creation of audio players.
+- Memory leaks from countdown timers.
+- Broken image references.
+- Unhandled promise rejections.
+- Infinite loading indicators.
+- Fake loading animations that never finish.
+
+Provide useful fallback content when a remote image, map, or audio source fails.
+
+The main invitation must remain readable even when optional media cannot load.
+
+---
+
+# 15. SEO AND SOCIAL SHARING
+
+Implement appropriate metadata for the public wedding invitation.
+
+Support:
+- Vietnamese document language.
+- Page title.
+- Meta description.
+- Canonical URL configuration.
+- Open Graph title.
+- Open Graph description.
+- Open Graph image.
+- Twitter/X sharing metadata.
+- Favicon configuration.
+
+Allow the administrator to edit the relevant text and social sharing image URL.
+
+Use a configurable production domain.
+
+Do not hardcode the domain from the supplied reference files.
+
+IMPORTANT:
+
+Social sharing previews are not always generated from client-side JavaScript. If the deployment platform requires server-rendered metadata or prerendering for reliable Open Graph previews, implement or document the appropriate solution.
+
+Do not claim that dynamic social sharing metadata works for every crawler unless it has been verified.
+
+---
+
+# 16. ADMINISTRATION QUALITY REQUIREMENTS
+
+The administration dashboard must be simple enough for a non-technical wedding owner to use.
+
+All labels, instructions, validation messages, and buttons must be in Vietnamese.
+
+Examples:
+- "Lưu thay đổi"
+- "Hủy"
+- "Xem trước"
+- "Đã lưu thành công"
+- "Đường dẫn hình ảnh không hợp lệ"
+- "Không thể tải hình ảnh"
+- "Thêm ảnh"
+- "Xóa ảnh"
+- "Sắp xếp lại"
+- "Hiển thị mục này"
+- "Ẩn mục này"
+
+Use clear forms and avoid exposing raw JSON as the primary editing interface.
+
+Do not require the owner to edit code, JSON files, environment variables, or database records for ordinary content changes.
+
+The owner must be able to manage the entire invitation from `/admin`.
+
+---
+
+# 17. INITIAL DEFAULT CONTENT
+
+Create attractive Vietnamese sample content so the application looks complete on first launch.
+
+However:
+- Make it obvious that the information is sample content.
+- Do not permanently hardcode sample names into the public components.
+- Store editable content in the database.
+- Allow the owner to replace every sample field.
+- Do not reuse the reference couple's personal details as permanent defaults.
+
+If no configuration exists yet, provide a safe initialization flow.
+
+Do not overwrite an existing wedding configuration during initialization.
+
+Do not create a public invitation containing fabricated personal addresses, contact details, or wedding information without clearly treating them as sample data.
+
+---
+
+# 18. IMPLEMENTATION WORKFLOW
+
+Follow this development process.
+
+## Phase 1: Inspect the references
+
+Analyze both attached files.
+
+Identify:
+- Main colors.
+- Typography.
+- Section order.
+- Card dimensions and proportions.
+- Decorative elements.
+- Opening interaction.
+- Wedding information hierarchy.
+- Gallery composition.
+- Animation behavior.
+- Audio behavior.
+
+Write a concise internal implementation plan before coding.
+
+Do not stop at the analysis stage.
+
+## Phase 2: Establish the application architecture
+
+Create:
+- Project structure.
+- Data types.
+- Reusable components.
+- Styling tokens.
+- Database service.
+- Authentication service.
+- Routing for `/` and `/admin`.
+
+Ensure the selected router and deployment configuration support direct access to `/admin`.
+
+## Phase 3: Implement the public invitation
+
+Complete the entire invitation, including:
+- Opening cover.
+- Background music.
+- Hero.
+- Family information.
+- Timeline.
+- Portraits.
+- Venue.
+- Countdown.
+- Calendar.
+- Gallery.
+- RSVP.
+- Wedding wishes.
+- Closing section.
+
+Do not replace missing sections with empty placeholders.
+
+## Phase 4: Implement the admin dashboard
+
+Complete:
+- Authentication.
+- Dashboard.
+- Editable content forms.
+- Image URL editing.
+- Image previews.
+- Music settings.
+- Timeline management.
+- Gallery management.
+- Section visibility.
+- Venue settings.
+- Appearance settings.
+- RSVP management.
+- Wedding wishes moderation.
+- SEO settings.
+- Persistent saving.
+- Preview workflow.
+
+## Phase 5: Connect the database
+
+Verify that:
+- The public website loads saved configuration.
+- The admin dashboard loads the same configuration.
+- Saved edits persist after refresh.
+- Changes are reflected in the public invitation.
+- Unauthorized users cannot modify protected data.
+- Missing configuration does not crash the application.
+
+## Phase 6: Review the design
+
+Compare the rendered application with the attached reference.
+
+Pay particular attention to:
+- Opening card proportions.
+- Burgundy and cream color balance.
+- Name typography.
+- Decorative motifs.
+- Hero section spacing.
+- Family information layout.
+- Image cropping.
+- Gallery composition.
+- Mobile layout.
+- Animation timing.
+
+Refine the design until it is visually coherent and closely follows the reference.
+
+Do not settle for a generic template simply because the sections exist.
+
+## Phase 7: Functional verification
+
+Verify actual application behavior.
+
+Check:
+- Opening and closing states.
+- Audio playback initiated by the opening click.
+- Audio controls.
+- Countdown calculations.
+- Date changes.
+- Timeline editing.
+- Image URL changes.
+- Gallery editing.
+- RSVP submission.
+- RSVP persistence.
+- Wedding wishes submission.
+- Admin approval of wishes.
+- Authentication.
+- Logout.
+- Direct navigation to `/admin`.
+- Database access rules.
+- Public configuration loading.
+- Responsive layouts.
+- Missing image handling.
+- Database error handling.
+
+Do not spend time building a separate test-case management application. Verify the actual application and fix any discovered defects.
+
+Do not claim successful verification of a feature that has not been implemented or tested.
+
+---
+
+# 19. REQUIRED DELIVERABLES
+
+Produce a complete working project, not just a design proposal.
+
+Deliver:
+1. Complete source code.
+2. All public invitation components.
+3. Complete admin dashboard.
+4. Authentication implementation.
+5. Database integration.
+6. Responsive styling.
+7. Animation implementation.
+8. Wedding configuration data model.
+9. RSVP functionality.
+10. Wedding wishes functionality.
+11. Image URL management.
+12. Music configuration.
+13. Environment variable example file.
+14. Database security rules.
+15. Deployment configuration.
+16. A README written in Vietnamese.
+17. Setup instructions.
+18. Deployment instructions.
+19. Instructions for creating the first administrator account.
+20. Instructions for updating wedding content through `/admin`.
+
+The README must clearly explain:
+- Which services need to be configured.
+- Which environment variables are required.
+- How to initialize the database.
+- How to create an authorized administrator.
+- How to deploy the application.
+- How to access the public invitation.
+- How to access `/admin`.
+- How to change image URLs.
+- How to configure background music.
+- How to update wedding information.
+
+Do not include real passwords, private API keys, or service account credentials.
+
+---
+
+# 20. FINAL ACCEPTANCE CRITERIA
+
+The project is considered complete only when the following conditions are satisfied:
+
+A. DESIGN
+- The invitation closely follows the supplied Vietnamese burgundy-and-cream wedding reference.
+- It feels premium, romantic, and suitable for a young couple.
+- It works beautifully on desktop and mobile.
+
+B. OPENING EXPERIENCE
+- Guests see a complete invitation cover.
+- Clicking "Mở thiệp" triggers the opening animation.
+- Music playback is initiated by the guest's interaction.
+- The main invitation appears without a page reload.
+
+C. CONTENT MANAGEMENT
+- Every major section can be edited through `/admin`.
+- Images can be changed by entering URLs.
+- Changes persist in the database.
+- Changes are reflected in the public invitation.
+- Sections can be shown or hidden.
+
+D. SECURITY
+- `/admin` requires authentication.
+- Only authorized administrators can modify wedding content.
+- Private RSVP information is protected.
+- No private server secrets are exposed to the browser.
+
+E. FUNCTIONALITY
+- Countdown and calendar respond to the configured wedding date.
+- Gallery management works.
+- RSVP submissions are saved.
+- Wedding wishes can be moderated.
+- The venue and map configuration work.
+- Background music can be controlled.
+
+F. DEPLOYMENT
+- The project can be built using the documented commands.
+- Both `/` and `/admin` work after deployment.
+- The application does not depend on the development server.
+- Missing backend configuration is documented honestly.
+
+G. CODE QUALITY
+- No major section is represented only by a placeholder.
+- No fake buttons.
+- No nonfunctional save actions.
+- No hardcoded production wedding details.
+- No fabricated database persistence.
+- No exposed administrator credentials.
+- No unhandled errors that break the primary invitation experience.
+
+---
+
+# 21. FINAL INSTRUCTION
+
+Start by inspecting the attached reference files.
+
+Then implement the actual application.
+
+Prioritize visual fidelity, a beautiful invitation-opening experience, complete content editing, reliable persistence, and secure administration.
+
+Make sensible design decisions without repeatedly asking for approval.
+
+If an external service requires credentials or configuration that has not been supplied, implement the appropriate integration points and clearly explain what remains to be configured.
+
+Do not claim that the application is fully deployed or connected to a live database unless that has actually been completed.
+
+The final result must be a polished, functional Vietnamese online wedding invitation website that the owner can manage without programming knowledge.

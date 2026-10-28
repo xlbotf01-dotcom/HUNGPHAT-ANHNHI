@@ -1,0 +1,13 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# dữ liệu chạy local (chứa mật khẩu đã mã hóa, RSVP của khách...) - KHÔNG đưa lên GitHub
+data/
+uploads/
+.vercel/

@@ -1,0 +1,6 @@
+{
+  "name": "Thiệp Cưới Online & Admin CMS",
+  "description": "Trang thiệp cưới cao cấp phong cách truyền thống Việt Nam kèm nhạc nền, hiệu ứng mở thiệp, RSVP, sổ lời chúc và CMS quản trị đầy đủ.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
