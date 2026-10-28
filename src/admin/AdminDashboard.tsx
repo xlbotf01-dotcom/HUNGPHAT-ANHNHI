@@ -66,6 +66,58 @@ interface ImageFieldProps {
   placeholder?: string;
 }
 
+// Tự động tối ưu nén ảnh phía client (giảm ảnh từ 5MB-10MB xuống ~250KB JPEG sắc nét)
+async function compressImageIfNeeded(file: File, maxDimension = 1600, quality = 0.85): Promise<Blob> {
+  if (!file.type.startsWith('image/') || file.type === 'image/svg+xml' || file.type === 'image/gif') {
+    return file;
+  }
+  // Nếu ảnh đã dưới 350KB thì giữ nguyên
+  if (file.size < 350 * 1024) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          resolve(blob || file);
+        },
+        'image/jpeg',
+        quality
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+    img.src = url;
+  });
+}
+
 const ImageFieldWithUpload: React.FC<ImageFieldProps> = ({
   label,
   sizeHint,
@@ -86,6 +138,8 @@ const ImageFieldWithUpload: React.FC<ImageFieldProps> = ({
     setUploadError(null);
 
     try {
+      // Nén ảnh thông minh trước khi gửi
+      const readyBlob = await compressImageIfNeeded(file);
       const res = await fetch(
         `/api/admin/upload?kind=image&name=${encodeURIComponent(file.name)}`,
         {
@@ -93,7 +147,7 @@ const ImageFieldWithUpload: React.FC<ImageFieldProps> = ({
           headers: {
             Authorization: `Bearer ${token}`,
           },
-          body: file,
+          body: readyBlob,
         }
       );
 
@@ -299,6 +353,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleExportRsvpCsv = () => {
     window.open(`/api/admin/rsvp/export?token=${encodeURIComponent(token)}`, '_blank');
+  };
+
+  const handleExportConfig = () => {
+    if (!config) return;
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'wedding-config.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportConfig = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = JSON.parse(text);
+        if (!parsed.couple || !parsed.cover) {
+          alert('Tệp JSON không đúng định dạng cấu hình thiệp cưới.');
+          return;
+        }
+        setConfig(parsed);
+        setSaveMessage({
+          type: 'success',
+          text: 'Đã nhập cấu hình từ tệp thành công! Hãy bấm nút "Lưu Thay Đổi" để cập nhật lên máy chủ.',
+        });
+      } catch {
+        alert('Không thể đọc tệp JSON này. Vui lòng kiểm tra lại.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   // Wishes actions
@@ -3089,60 +3181,131 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* TAB 16: SETTINGS */}
           {activeTab === 'settings' && (
-            <div className="bg-white p-6 rounded-xl border border-neutral-200 shadow-xs space-y-6">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-[#710001] border-b pb-3">
-                Bảo mật &amp; Đổi Mật Khẩu Quản Trị
-              </h3>
+            <div className="space-y-6">
+              {/* Card 1: Đổi mật khẩu */}
+              <div className="bg-white p-6 rounded-xl border border-neutral-200 shadow-xs space-y-6">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-[#710001] border-b pb-3">
+                  Bảo mật &amp; Đổi Mật Khẩu Quản Trị
+                </h3>
 
-              {passwordMsg && (
-                <div
-                  className={`p-3 text-xs rounded-lg ${
-                    passwordMsg.type === 'success'
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-300'
-                      : 'bg-rose-50 text-rose-800 border border-rose-300'
-                  }`}
-                >
-                  {passwordMsg.text}
+                {passwordMsg && (
+                  <div
+                    className={`p-3 text-xs rounded-lg ${
+                      passwordMsg.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-300'
+                        : 'bg-rose-50 text-rose-800 border border-rose-300'
+                    }`}
+                  >
+                    {passwordMsg.text}
+                  </div>
+                )}
+
+                <form onSubmit={handleChangePassword} className="max-w-md space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-700 mb-1">
+                      Mật khẩu hiện tại *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full p-2.5 bg-neutral-50 border border-neutral-300 rounded text-sm"
+                      placeholder="Mật khẩu hiện tại..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-700 mb-1">
+                      Mật khẩu mới * (ít nhất 6 ký tự)
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full p-2.5 bg-neutral-50 border border-neutral-300 rounded text-sm"
+                      placeholder="Nhập mật khẩu mới..."
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-[#710001] hover:bg-[#8e1012] text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+                  >
+                    Đổi Mật Khẩu
+                  </button>
+                </form>
+              </div>
+
+              {/* Card 2: Sao lưu & Đồng bộ Cấu hình (GitHub / File) */}
+              <div className="bg-white p-6 rounded-xl border border-neutral-200 shadow-xs space-y-4">
+                <div className="border-b pb-3">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-[#710001]">
+                    Sao lưu &amp; Đồng bộ Cấu hình (File &amp; GitHub)
+                  </h3>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    Xuất hoặc nhập toàn bộ nội dung thiệp cưới dưới dạng tệp tin JSON để lưu trữ hoặc commit lên GitHub.
+                  </p>
                 </div>
-              )}
 
-              <form onSubmit={handleChangePassword} className="max-w-md space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-neutral-700 mb-1">
-                    Mật khẩu hiện tại *
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full p-2.5 bg-neutral-50 border border-neutral-300 rounded text-sm"
-                    placeholder="Mật khẩu hiện tại..."
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200 space-y-2">
+                    <span className="text-xs font-bold text-neutral-800 block">
+                      1. Xuất file cấu hình thiệp cưới
+                    </span>
+                    <p className="text-[11px] text-neutral-600 leading-relaxed">
+                      Tải về tệp <code className="bg-neutral-200 px-1 py-0.5 rounded text-neutral-800">wedding-config.json</code> chứa toàn bộ thông tin ngày giờ, địa điểm, ảnh, mã QR, lời chúc... Bạn có thể dùng tệp này để chép đè vào thư mục <code className="bg-neutral-200 px-1 py-0.5 rounded text-neutral-800">data/wedding-config.json</code> trên GitHub.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleExportConfig}
+                      className="mt-2 px-4 py-2 bg-neutral-800 hover:bg-[#710001] text-white text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-2"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Tải file wedding-config.json</span>
+                    </button>
+                  </div>
+
+                  <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200 space-y-2">
+                    <span className="text-xs font-bold text-neutral-800 block">
+                      2. Nhập file cấu hình từ máy tính
+                    </span>
+                    <p className="text-[11px] text-neutral-600 leading-relaxed">
+                      Khôi phục nhanh cấu hình từ tệp JSON đã lưu trước đó. Sau khi chọn tệp, nội dung sẽ được nạp vào trang quản trị để bạn kiểm tra trước khi bấm &quot;Lưu Thay Đổi&quot;.
+                    </p>
+                    <label className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-[#710001] hover:bg-[#8e1012] text-white text-xs font-medium rounded-lg transition-colors cursor-pointer">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Chọn file JSON để khôi phục</span>
+                      <input
+                        type="file"
+                        accept=".json,application/json"
+                        className="hidden"
+                        onChange={handleImportConfig}
+                      />
+                    </label>
+                  </div>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-neutral-700 mb-1">
-                    Mật khẩu mới * (ít nhất 6 ký tự)
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full p-2.5 bg-neutral-50 border border-neutral-300 rounded text-sm"
-                    placeholder="Nhập mật khẩu mới..."
-                  />
+              {/* Card 3: Lưu ý lưu trữ ảnh vĩnh viễn trên Vercel */}
+              <div className="bg-amber-50/60 p-6 rounded-xl border border-amber-200 shadow-xs space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#710001] flex items-center gap-2">
+                  <span>💡</span> Lưu ý lưu trữ ảnh vĩnh viễn khi chạy trên Vercel &amp; GitHub
+                </h4>
+                <div className="text-xs text-neutral-700 leading-relaxed space-y-2">
+                  <p>
+                    <strong>1. Ảnh tải lên qua Admin CMS:</strong> Hệ thống đã tự động kích hoạt tính năng nén ảnh thông minh và lưu dưới dạng <em>Base64 Data URI</em> trực tiếp vào cấu hình thiệp. Ảnh này tự thân hiển thị vĩnh viễn trên mọi thiết bị và trình duyệt mà không bao giờ bị mất khi Vercel khởi động lại.
+                  </p>
+                  <p>
+                    <strong>2. Muốn dùng kho lưu trữ CDN chuyên nghiệp (Khuyên dùng):</strong> Bạn vào trang quản lý dự án trên <strong>Vercel &gt; Storage &gt; Connect Store &gt; Blob (miễn phí)</strong> rồi bấm <em>Redeploy</em>. Mọi ảnh tải lên sau đó sẽ tự động được lưu trên CDN tốc độ cao của Vercel vĩnh viễn.
+                  </p>
+                  <p>
+                    <strong>3. Tự động đồng bộ lên GitHub (Tùy chọn):</strong> Nếu bạn thêm biến môi trường <code className="bg-amber-100 px-1 py-0.5 rounded text-neutral-800 font-mono">GITHUB_TOKEN</code> (Personal Access Token có quyền repo) vào Vercel Settings &gt; Environment Variables, mỗi khi bạn lưu thay đổi, hệ thống sẽ tự động commit tệp cấu hình và ảnh lên GitHub!
+                  </p>
                 </div>
-
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-[#710001] hover:bg-[#8e1012] text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
-                >
-                  Đổi Mật Khẩu
-                </button>
-              </form>
+              </div>
             </div>
           )}
         </div>
