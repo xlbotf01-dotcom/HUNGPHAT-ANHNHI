@@ -215,7 +215,7 @@ export const defaultWeddingConfig: WeddingConfig = {
   },
   music: {
     enabled: true,
-    audioUrl: '/uploads/dam-cuoi-nha-hong-thanh-dj-mie-dan-organ-ae201fe1.mp3',
+    audioUrl: '/audio/mai-mai-ben-nhau.mp3',
     volume: 0.6,
     loop: true,
   },
