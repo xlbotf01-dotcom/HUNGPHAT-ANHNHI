@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
-import { Volume2, VolumeX, Music, Pause, Play } from 'lucide-react';
+import { Volume2, VolumeX, Music, Play } from 'lucide-react';
 import { WeddingConfig } from '../types/wedding';
+import defaultWeddingAudio from '../audio/mai-mai-ben-nhau.mp3';
 
 export interface MusicPlayerHandle {
   playMusic: () => Promise<boolean>;
@@ -17,6 +18,20 @@ export const MusicPlayer = forwardRef<MusicPlayerHandle, MusicPlayerProps>(({ co
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(false);
+
+  // Chọn nguồn nhạc: nếu là tệp mặc định hoặc rỗng, ưu tiên dùng tệp Vite bundle từ src/audio/mai-mai-ben-nhau.mp3
+  const isDefaultSong =
+    !music.audioUrl ||
+    music.audioUrl === '/audio/mai-mai-ben-nhau.mp3' ||
+    music.audioUrl === '/src/audio/mai-mai-ben-nhau.mp3' ||
+    music.audioUrl.includes('mai-mai-ben-nhau');
+
+  const resolvedSource = isDefaultSong ? defaultWeddingAudio : music.audioUrl;
+  const [currentSrc, setCurrentSrc] = useState<string>(resolvedSource);
+
+  useEffect(() => {
+    setCurrentSrc(resolvedSource);
+  }, [resolvedSource]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -70,18 +85,28 @@ export const MusicPlayer = forwardRef<MusicPlayerHandle, MusicPlayerProps>(({ co
     setIsMuted(!isMuted);
   };
 
+  const handleAudioError = () => {
+    // Nếu nguồn tùy chỉnh bị lỗi và chưa dùng defaultWeddingAudio, thử chuyển sang defaultWeddingAudio
+    if (currentSrc !== defaultWeddingAudio) {
+      console.warn('Custom audio failed to load, falling back to default wedding audio:', defaultWeddingAudio);
+      setCurrentSrc(defaultWeddingAudio);
+    } else if (currentSrc !== '/audio/mai-mai-ben-nhau.mp3') {
+      setCurrentSrc('/audio/mai-mai-ben-nhau.mp3');
+    } else {
+      setIsPlaying(false);
+    }
+  };
+
   if (!music.enabled) return null;
 
   return (
     <>
       <audio
         ref={audioRef}
-        src={music.audioUrl || ''}
+        src={currentSrc}
         preload="auto"
         loop={music.loop ?? true}
-        onError={() => {
-          setIsPlaying(false);
-        }}
+        onError={handleAudioError}
       />
 
       {/* Floating Music Control */}

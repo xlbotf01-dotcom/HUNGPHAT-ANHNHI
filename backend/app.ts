@@ -1,9 +1,27 @@
 import express, { Request, Response, NextFunction } from 'express';
+import fs from 'fs';
+import path from 'path';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { defaultWeddingConfig } from '../src/data/defaultConfig.js';
 import type { WeddingConfig, RSVPSubmission, WeddingWish, AdminStats } from '../src/types/wedding.js';
-import { readJSON, writeJSON, saveUpload, sniffFile, UPLOAD_DIR, storageInfo } from './storage.js';
+import {
+  readJSON,
+  writeJSON,
+  saveUpload,
+  sniffFile,
+  UPLOAD_DIR,
+  TMP_UPLOAD_DIR,
+  PUBLIC_IMAGES_DIR,
+  SRC_IMAGES_DIR,
+  PUBLIC_AUDIO_DIR,
+  SRC_AUDIO_DIR,
+  TMP_IMAGES_DIR,
+  TMP_AUDIO_DIR,
+  storageInfo,
+  syncFileToGitHub,
+  githubToken,
+} from './storage.js';
 
 dotenv.config();
 
@@ -74,6 +92,13 @@ async function saveAuthData(data: AuthData) {
 async function getConfig(): Promise<WeddingConfig> {
   const stored = await readJSON<WeddingConfig | null>('wedding-config', null);
   if (!stored) {
+    try {
+      const dataFile = path.resolve(process.cwd(), 'data', 'wedding-config.json');
+      if (fs.existsSync(dataFile)) {
+        const parsed = JSON.parse(fs.readFileSync(dataFile, 'utf-8'));
+        return { ...defaultWeddingConfig, ...parsed };
+      }
+    } catch {}
     await writeJSON('wedding-config', defaultWeddingConfig);
     return defaultWeddingConfig;
   }
@@ -81,7 +106,31 @@ async function getConfig(): Promise<WeddingConfig> {
 }
 
 async function saveConfig(config: WeddingConfig) {
+  // 1. Ghi vào wedding-config.json qua lớp storage (Redis / /tmp / data / GitHub)
   await writeJSON('wedding-config', config);
+
+  // 2. Ghi đè vào src/data/defaultConfig.ts để code nguồn luôn mang theo cấu hình mới nhất vĩnh viễn
+  try {
+    const defaultConfigFile = path.resolve(process.cwd(), 'src', 'data', 'defaultConfig.ts');
+    const tsCode = `import { WeddingConfig } from '../types/wedding';\n\nexport const defaultWeddingConfig: WeddingConfig = ${JSON.stringify(config, null, 2)};\n`;
+    fs.writeFileSync(defaultConfigFile, tsCode, 'utf-8');
+  } catch (err) {
+    // Expected trên môi trường read-only như Vercel
+  }
+
+  // 3. Nếu có cấu hình GITHUB_TOKEN, tự động commit cả wedding-config.json và defaultConfig.ts lên GitHub repo
+  if (githubToken) {
+    syncFileToGitHub(
+      'data/wedding-config.json',
+      Buffer.from(JSON.stringify(config, null, 2), 'utf-8'),
+      'Cập nhật cấu hình thiệp cưới qua Admin CMS'
+    ).catch(() => {});
+    syncFileToGitHub(
+      'src/data/defaultConfig.ts',
+      Buffer.from(`import { WeddingConfig } from '../types/wedding';\n\nexport const defaultWeddingConfig: WeddingConfig = ${JSON.stringify(config, null, 2)};\n`, 'utf-8'),
+      'Đồng bộ cấu hình mặc định thiệp cưới qua Admin CMS'
+    ).catch(() => {});
+  }
 }
 
 // ---------------- RSVP ----------------
@@ -131,10 +180,46 @@ app.use('/api', (_req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Khi chạy máy cá nhân / VPS (không dùng Vercel Blob), file upload được phục vụ tại /uploads
-if (storageInfo.files === 'local') {
-  app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d', immutable: true }));
-}
+// Phục vụ ảnh từ cả public/images, src/assets/images, uploads và /tmp
+app.get('/images/:file', (req: Request, res: Response, next: NextFunction) => {
+  const file = path.basename(req.params.file);
+  const candidates = [
+    path.join(PUBLIC_IMAGES_DIR, file),
+    path.join(SRC_IMAGES_DIR, file),
+    path.join(process.cwd(), 'dist', 'images', file),
+    path.join(TMP_IMAGES_DIR, file),
+    path.join(UPLOAD_DIR, file),
+    path.join(TMP_UPLOAD_DIR, file),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      return res.sendFile(c);
+    }
+  }
+  next();
+});
+
+// Phục vụ nhạc từ cả public/audio, src/audio, dist và /tmp
+app.get('/audio/:file', (req: Request, res: Response, next: NextFunction) => {
+  const file = path.basename(req.params.file);
+  const candidates = [
+    path.join(PUBLIC_AUDIO_DIR, file),
+    path.join(SRC_AUDIO_DIR, file),
+    path.join(process.cwd(), 'dist', 'audio', file),
+    path.join(TMP_AUDIO_DIR, file),
+    path.join(UPLOAD_DIR, file),
+    path.join(TMP_UPLOAD_DIR, file),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      return res.sendFile(c);
+    }
+  }
+  next();
+});
+
+// Phục vụ thư mục uploads khi chạy local/VPS
+app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d' }));
 
 // Auth Middleware for Admin Routes
 async function requireAdmin(req: Request, res: Response, next: NextFunction) {

@@ -1,6 +1,14 @@
 {
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "data/**"
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/images/(.*)", "destination": "/api" },
+    { "source": "/audio/(.*)", "destination": "/api" },
+    { "source": "/uploads/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

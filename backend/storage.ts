@@ -27,8 +27,14 @@ export const isVercel = !!process.env.VERCEL;
 
 export const DATA_DIR = path.resolve(process.cwd(), 'data');
 export const UPLOAD_DIR = path.resolve(process.cwd(), 'uploads');
+export const PUBLIC_IMAGES_DIR = path.resolve(process.cwd(), 'public', 'images');
+export const SRC_IMAGES_DIR = path.resolve(process.cwd(), 'src', 'assets', 'images');
+export const PUBLIC_AUDIO_DIR = path.resolve(process.cwd(), 'public', 'audio');
+export const SRC_AUDIO_DIR = path.resolve(process.cwd(), 'src', 'audio');
 export const TMP_DATA_DIR = path.resolve('/tmp', 'wedding-data');
 export const TMP_UPLOAD_DIR = path.resolve('/tmp', 'wedding-uploads');
+export const TMP_IMAGES_DIR = path.resolve('/tmp', 'wedding-images');
+export const TMP_AUDIO_DIR = path.resolve('/tmp', 'wedding-audio');
 
 // GitHub auto-sync (tùy chọn - nếu người dùng cung cấp Personal Access Token trên Vercel)
 export const githubToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
@@ -42,8 +48,8 @@ export const storageInfo = {
   hasBlob: !!blobToken,
   hasGitHub: !!githubToken,
   githubRepo,
-  jsonBackend: redis ? 'Upstash Redis' : githubToken ? 'GitHub Sync' : isVercel ? 'Serverless Runtime /tmp' : 'Tệp cục bộ ./data',
-  filesBackend: blobToken ? 'Vercel Blob CDN' : githubToken ? 'GitHub public/uploads' : isVercel ? 'Base64 Data URI' : 'Tệp cục bộ ./uploads',
+  jsonBackend: redis ? 'Upstash Redis' : githubToken ? 'GitHub Sync' : isVercel ? 'Serverless Runtime /tmp' : 'Tệp cục bộ ./data & src/data/defaultConfig.ts',
+  filesBackend: blobToken ? 'Vercel Blob CDN' : githubToken ? 'GitHub public/images' : isVercel ? 'Serverless /tmp & Base64 Data URI' : 'Tệp cục bộ public/images & src/assets/images',
 };
 
 /** Tự động đồng bộ commit tệp lên GitHub repository qua GitHub REST API */
@@ -208,49 +214,104 @@ export async function saveUpload(buf: Buffer, originalName: string, sniffed: Sni
   const slug = slugify(originalName);
   const fileName = `${slug}-${crypto.randomBytes(4).toString('hex')}.${sniffed.ext}`;
 
-  // 1. Nếu có Vercel Blob (Khuyên dùng khi deploy Vercel): Lưu trữ CDN vĩnh viễn
-  if (blobToken) {
+  if (sniffed.kind === 'image') {
+    // 1. Lưu đồng thời vào public/images và src/assets/images
     try {
-      const blob = await put(`wedding/${sniffed.kind}/${fileName}`, buf, {
-        access: 'public',
-        contentType: sniffed.mime,
-        addRandomSuffix: false,
-      });
-      return blob.url;
-    } catch (err) {
-      console.warn('Lỗi tải lên Vercel Blob, chuyển sang cơ chế dự phòng:', err);
-    }
-  }
+      if (!fs.existsSync(PUBLIC_IMAGES_DIR)) fs.mkdirSync(PUBLIC_IMAGES_DIR, { recursive: true });
+      fs.writeFileSync(path.join(PUBLIC_IMAGES_DIR, fileName), buf);
+    } catch {}
 
-  // 2. Nếu có GITHUB_TOKEN: Tự động commit vào thư mục public/uploads trên GitHub repo
-  if (githubToken) {
     try {
-      const success = await syncFileToGitHub(
-        `public/uploads/${fileName}`,
-        buf,
-        `Tải ảnh mới: ${originalName} qua Admin CMS`
-      );
-      if (success) {
-        return `https://raw.githubusercontent.com/${githubRepo}/main/public/uploads/${fileName}`;
-      }
-    } catch (err) {
-      console.warn('Lỗi commit ảnh lên GitHub:', err);
-    }
-  }
+      if (!fs.existsSync(SRC_IMAGES_DIR)) fs.mkdirSync(SRC_IMAGES_DIR, { recursive: true });
+      fs.writeFileSync(path.join(SRC_IMAGES_DIR, fileName), buf);
+    } catch {}
 
-  // 3. Khi chạy trên máy cá nhân hoặc VPS: Lưu trực tiếp vào thư mục ./uploads
-  if (!isVercel) {
     try {
       if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
       fs.writeFileSync(path.join(UPLOAD_DIR, fileName), buf);
-      return `/uploads/${fileName}`;
-    } catch (err) {
-      console.warn('Lỗi lưu tệp vào đĩa cục bộ:', err);
+    } catch {}
+
+    // 2. Lưu vào /tmp để phục vụ ngay trên Vercel Serverless
+    try {
+      if (!fs.existsSync(TMP_IMAGES_DIR)) fs.mkdirSync(TMP_IMAGES_DIR, { recursive: true });
+      fs.writeFileSync(path.join(TMP_IMAGES_DIR, fileName), buf);
+    } catch {}
+
+    // 3. Nếu có Vercel Blob: lưu trữ CDN vĩnh viễn
+    if (blobToken) {
+      try {
+        const blob = await put(`wedding/images/${fileName}`, buf, {
+          access: 'public',
+          contentType: sniffed.mime,
+          addRandomSuffix: false,
+        });
+        return blob.url;
+      } catch (err) {
+        console.warn('Lỗi Vercel Blob:', err);
+      }
     }
+
+    // 4. Nếu có GITHUB_TOKEN: Tự động commit vào cả public/images và src/assets/images
+    if (githubToken) {
+      try {
+        await syncFileToGitHub(
+          `public/images/${fileName}`,
+          buf,
+          `Thêm ảnh mới: ${originalName} vào public/images`
+        );
+        syncFileToGitHub(
+          `src/assets/images/${fileName}`,
+          buf,
+          `Đồng bộ ảnh mới: ${originalName} vào src/assets/images`
+        ).catch(() => {});
+      } catch (err) {
+        console.warn('Lỗi commit ảnh lên GitHub:', err);
+      }
+    }
+
+    return `/images/${fileName}`;
   }
 
-  // 4. Giải pháp vĩnh viễn và không cần cấu hình cho Vercel (Base64 Data URI)
-  // Ảnh được nhúng trực tiếp thành chuỗi data URI, lưu vĩnh viễn cùng cấu hình thiệp cưới
-  // Hoạt động 100% trên mọi trình duyệt, không phụ thuộc vào bất kỳ dịch vụ máy chủ ngoài nào
-  return `data:${sniffed.mime};base64,${buf.toString('base64')}`;
+  // Nếu là file nhạc audio
+  if (sniffed.kind === 'audio') {
+    try {
+      if (!fs.existsSync(PUBLIC_AUDIO_DIR)) fs.mkdirSync(PUBLIC_AUDIO_DIR, { recursive: true });
+      fs.writeFileSync(path.join(PUBLIC_AUDIO_DIR, fileName), buf);
+    } catch {}
+
+    try {
+      if (!fs.existsSync(SRC_AUDIO_DIR)) fs.mkdirSync(SRC_AUDIO_DIR, { recursive: true });
+      fs.writeFileSync(path.join(SRC_AUDIO_DIR, fileName), buf);
+    } catch {}
+
+    try {
+      if (!fs.existsSync(TMP_AUDIO_DIR)) fs.mkdirSync(TMP_AUDIO_DIR, { recursive: true });
+      fs.writeFileSync(path.join(TMP_AUDIO_DIR, fileName), buf);
+    } catch {}
+
+    if (blobToken) {
+      try {
+        const blob = await put(`wedding/audio/${fileName}`, buf, {
+          access: 'public',
+          contentType: sniffed.mime,
+          addRandomSuffix: false,
+        });
+        return blob.url;
+      } catch (err) {}
+    }
+
+    if (githubToken) {
+      try {
+        await syncFileToGitHub(
+          `public/audio/${fileName}`,
+          buf,
+          `Thêm nhạc mới: ${originalName} vào public/audio`
+        );
+      } catch (err) {}
+    }
+
+    return `/audio/${fileName}`;
+  }
+
+  return `/uploads/${fileName}`;
 }
