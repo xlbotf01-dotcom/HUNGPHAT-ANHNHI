@@ -52,56 +52,101 @@ export const storageInfo = {
   filesBackend: blobToken ? 'Vercel Blob CDN' : githubToken ? 'GitHub public/images' : isVercel ? 'Serverless /tmp & Base64 Data URI' : 'Tệp cục bộ public/images & src/assets/images',
 };
 
+// Sequential commit queue for GitHub API to prevent SHA conflicts
+let gitHubCommitQueue = Promise.resolve(true);
+
 /** Tự động đồng bộ commit tệp lên GitHub repository qua GitHub REST API */
 export async function syncFileToGitHub(
   filePathInRepo: string,
   contentBuffer: Buffer,
-  commitMessage: string
+  commitMessage: string,
+  explicitToken?: string
 ): Promise<boolean> {
-  if (!githubToken || !githubRepo) return false;
-  try {
-    const url = `https://api.github.com/repos/${githubRepo}/contents/${filePathInRepo}`;
-    let sha: string | undefined;
+  const token = explicitToken || githubToken;
+  if (!token || !githubRepo) return false;
 
-    // 1. Kiểm tra sha hiện tại nếu tệp đã tồn tại
+  const task = async () => {
     try {
-      const getRes = await fetch(url, {
+      const url = `https://api.github.com/repos/${githubRepo}/contents/${filePathInRepo}`;
+      let sha: string | undefined;
+
+      // 1. Kiểm tra sha hiện tại nếu tệp đã tồn tại
+      try {
+        const getRes = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github.v3+json',
+            'User-Agent': 'Wedding-App-CMS',
+          },
+        });
+        if (getRes.ok) {
+          const getData = (await getRes.json()) as { sha?: string };
+          sha = getData.sha;
+        }
+      } catch {}
+
+      // 2. Put / update tệp
+      const body: Record<string, any> = {
+        message: commitMessage,
+        content: contentBuffer.toString('base64'),
+      };
+      if (sha) body.sha = sha;
+
+      const putRes = await fetch(url, {
+        method: 'PUT',
         headers: {
-          Authorization: `Bearer ${githubToken}`,
+          Authorization: `Bearer ${token}`,
           Accept: 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
           'User-Agent': 'Wedding-App-CMS',
         },
+        body: JSON.stringify(body),
       });
-      if (getRes.ok) {
-        const getData = (await getRes.json()) as { sha?: string };
-        sha = getData.sha;
+
+      if (!putRes.ok) {
+        const errText = await putRes.text();
+        console.warn(`Lỗi GitHub PUT ${filePathInRepo}: ${putRes.status}`, errText);
       }
-    } catch {}
+      return putRes.ok;
+    } catch (err) {
+      console.warn(`Lỗi đồng bộ GitHub cho ${filePathInRepo}:`, err);
+      return false;
+    }
+  };
 
-    // 2. Put / update tệp
-    const body: Record<string, any> = {
-      message: commitMessage,
-      content: contentBuffer.toString('base64'),
-    };
-    if (sha) body.sha = sha;
+  gitHubCommitQueue = gitHubCommitQueue.then(task).catch(() => false);
+  return gitHubCommitQueue;
+}
 
-    const putRes = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${githubToken}`,
-        Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'Wedding-App-CMS',
-      },
-      body: JSON.stringify(body),
-    });
+/** Ghi trực tiếp vào file nguồn TypeScript (src/data/...) và đồng bộ GitHub */
+export async function writeSourceFile(
+  filePathInRepo: string,
+  content: string,
+  commitMessage: string,
+  explicitToken?: string
+): Promise<void> {
+  // 1. Ghi tệp cục bộ nếu môi trường cho phép ghi đĩa (local / VPS)
+  try {
+    const fullPath = path.resolve(process.cwd(), filePathInRepo);
+    const dir = path.dirname(fullPath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(fullPath, content, 'utf-8');
+  } catch {
+    // Trên Vercel đĩa là Read-only
+  }
 
-    return putRes.ok;
-  } catch (err) {
-    console.warn('Lỗi đồng bộ GitHub:', err);
-    return false;
+  // 2. Đồng bộ lên GitHub
+  const token = explicitToken || githubToken;
+  if (token) {
+    syncFileToGitHub(
+      filePathInRepo,
+      Buffer.from(content, 'utf-8'),
+      commitMessage,
+      token
+    ).catch(() => {});
   }
 }
+
 
 // ---------------- JSON ----------------
 export async function readJSON<T>(name: string, fallback: T): Promise<T> {
@@ -134,7 +179,7 @@ export async function readJSON<T>(name: string, fallback: T): Promise<T> {
   return fallback;
 }
 
-export async function writeJSON<T>(name: string, value: T): Promise<void> {
+export async function writeJSON<T>(name: string, value: T, explicitToken?: string): Promise<void> {
   const jsonString = JSON.stringify(value, null, 2);
 
   // 1. Upstash Redis (lưu trữ phân tán vĩnh viễn trên cloud)
@@ -160,15 +205,18 @@ export async function writeJSON<T>(name: string, value: T): Promise<void> {
     // Trên Vercel đĩa gốc là Read-Only, đã được /tmp và Redis xử lý
   }
 
-  // 4. Nếu có GITHUB_TOKEN, tự động commit đồng bộ lên repo GitHub
-  if (githubToken) {
+  // 4. Đồng bộ commit lên repo GitHub
+  const token = explicitToken || githubToken;
+  if (token) {
     syncFileToGitHub(
       `data/${name}.json`,
       Buffer.from(jsonString, 'utf-8'),
-      `Cập nhật dữ liệu ${name}.json từ Admin CMS`
+      `Cập nhật dữ liệu ${name}.json từ Admin CMS`,
+      token
     ).catch((err) => console.warn('Lỗi auto-commit GitHub:', err));
   }
 }
+
 
 // ---------------- FILES ----------------
 export interface SniffedFile {

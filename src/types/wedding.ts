@@ -188,5 +188,39 @@ export interface AdminStats {
   totalGuests: number;
   pendingWishes: number;
   approvedWishes: number;
+  totalVisits?: number;
+  todayVisits?: number;
+  thisMonthVisits?: number;
+  thisYearVisits?: number;
   lastUpdated: string;
 }
+
+export interface VisitRecord {
+  id: string;
+  timestamp: string;
+  date: string; // YYYY-MM-DD
+  month: string; // YYYY-MM
+  year: string; // YYYY
+  page?: string;
+  device?: string;
+}
+
+export interface VisitDataStore {
+  totalVisits: number;
+  byDate: Record<string, number>;
+  byMonth: Record<string, number>;
+  byYear: Record<string, number>;
+  recentVisits: VisitRecord[];
+}
+
+export interface VisitAnalyticsSummary {
+  totalVisits: number;
+  todayVisits: number;
+  thisMonthVisits: number;
+  thisYearVisits: number;
+  byDate: Array<{ date: string; count: number }>;
+  byMonth: Array<{ month: string; count: number }>;
+  byYear: Array<{ year: string; count: number }>;
+  recentVisits: VisitRecord[];
+}
+

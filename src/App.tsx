@@ -68,13 +68,27 @@ export function App() {
     }
   }, []);
 
-  // Fetch wedding configuration
+  // Fetch wedding configuration with instant localStorage hydration
   const loadConfig = async () => {
+    // 1. Nạp ngay cache cục bộ nếu có để trang web hiển thị tức thì không chớp nháy
+    try {
+      const cached = localStorage.getItem('wedding_config_cached');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.couple && parsed.cover) {
+          setConfig(parsed);
+          if (parsed.seo?.pageTitle) document.title = parsed.seo.pageTitle;
+        }
+      }
+    } catch {}
+
+    // 2. Tải bản cập nhật mới nhất từ máy chủ
     try {
       const res = await fetch('/api/config');
       if (res.ok) {
         const data = await res.json();
         setConfig(data);
+        localStorage.setItem('wedding_config_cached', JSON.stringify(data));
 
         // Update document title and OG meta dynamically
         if (data.seo?.pageTitle) {
@@ -91,6 +105,26 @@ export function App() {
   useEffect(() => {
     loadConfig();
   }, []);
+
+  // Ghi nhận lượt truy cập (Visits tracking) theo ngày / tháng / năm
+  useEffect(() => {
+    if (!isAdminPath) {
+      const alreadyTracked = sessionStorage.getItem('wedding_visit_logged');
+      if (!alreadyTracked) {
+        sessionStorage.setItem('wedding_visit_logged', '1');
+        const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+        fetch('/api/analytics/visit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            page: window.location.pathname || '/',
+            device: isMobile ? 'mobile' : 'desktop',
+          }),
+        }).catch(() => {});
+      }
+    }
+  }, [isAdminPath]);
+
 
   // Opening the invitation card
   const handleOpenInvitation = async () => {

@@ -31,6 +31,7 @@ export const CouplePortraits: React.FC<CouplePortraitsProps> = ({ config }) => {
           <img
             alt={portraits.groomAlt || `Chú rể ${couple.groomFullName}`}
             loading="lazy"
+            decoding="async"
             src={portraits.groomImageUrl || '/src/assets/images/hero_wedding_couple_1793182915577.jpg'}
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/src/assets/images/hero_wedding_couple_1793182915577.jpg';
@@ -42,6 +43,7 @@ export const CouplePortraits: React.FC<CouplePortraitsProps> = ({ config }) => {
           <img
             alt={portraits.brideAlt || `Cô dâu ${couple.brideFullName}`}
             loading="lazy"
+            decoding="async"
             src={portraits.brideImageUrl || '/src/assets/images/story_wedding_prewedding_1793182916346.jpg'}
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/src/assets/images/story_wedding_prewedding_1793182916346.jpg';

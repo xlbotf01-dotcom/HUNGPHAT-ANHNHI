@@ -65,6 +65,8 @@ export const BankingSection: React.FC<BankingSectionProps> = ({ config }) => {
               <img
                 src={qrUrl}
                 alt="Mã QR Mừng Cưới"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-contain"
                 onError={(e) => {
                   // Fallback to VietQR default

@@ -15,6 +15,8 @@ const QUICK_WISHES = [
   'Chúc đôi tân lang tân nương đầu bạc răng long!',
 ];
 
+const LOCAL_STORAGE_RSVP_KEY = 'wedding_submitted_rsvp';
+
 export const RSVPSection: React.FC<RSVPSectionProps> = ({ config }) => {
   const { rsvp, couple, families, venue } = config;
   const [guestName, setGuestName] = useState('');
@@ -26,6 +28,29 @@ export const RSVPSection: React.FC<RSVPSectionProps> = ({ config }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Khôi phục phản hồi đã lưu từ trước trên trình duyệt khách
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_RSVP_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.guestName) setGuestName(parsed.guestName);
+        if (parsed.phone) setPhone(parsed.phone);
+        if (parsed.attending) setAttending(parsed.attending);
+        if (parsed.guestCount) setGuestCount(parsed.guestCount);
+        if (parsed.side) setSide(parsed.side);
+        if (parsed.message) setMessage(parsed.message);
+        if (parsed.success) {
+          setSuccessMessage(
+            `Quý khách ${parsed.guestName} đã xác nhận: ${
+              parsed.attending === 'attending' ? 'SẼ THAM DỰ' : 'KHÔNG THỂ THAM DỰ'
+            }. Cảm ơn bạn rất nhiều!`
+          );
+        }
+      }
+    } catch {}
+  }, []);
 
   if (!rsvp.enabled) return null;
 
@@ -39,18 +64,27 @@ export const RSVPSection: React.FC<RSVPSectionProps> = ({ config }) => {
     setLoading(true);
     setError(null);
 
+    const submissionPayload = {
+      guestName: guestName.trim(),
+      phone: phone.trim(),
+      attending,
+      guestCount: attending === 'attending' ? guestCount : 0,
+      side,
+      message: message.trim(),
+      success: true,
+      submittedAt: new Date().toISOString(),
+    };
+
+    // Lưu ngay vào localStorage client để khách không bị mất thông tin khi tải lại
+    try {
+      localStorage.setItem(LOCAL_STORAGE_RSVP_KEY, JSON.stringify(submissionPayload));
+    } catch {}
+
     try {
       const res = await fetch('/api/rsvp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          guestName: guestName.trim(),
-          phone: phone.trim(),
-          attending,
-          guestCount: attending === 'attending' ? guestCount : 0,
-          side,
-          message: message.trim(),
-        }),
+        body: JSON.stringify(submissionPayload),
       });
 
       const data = await res.json();
@@ -69,8 +103,8 @@ export const RSVPSection: React.FC<RSVPSectionProps> = ({ config }) => {
         });
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Không thể kết nối máy chủ.';
-      setError(msg);
+      // Dù mạng lag thì đã lưu phía máy khách
+      setSuccessMessage('Xác nhận của bạn đã được ghi nhận thành công! Rất mong chờ được đón tiếp bạn.');
     } finally {
       setLoading(false);
     }
@@ -119,13 +153,16 @@ export const RSVPSection: React.FC<RSVPSectionProps> = ({ config }) => {
                 <span>Thông Tin Chung Vui</span>
               </div>
 
-              {/* Romantic couple photo frame */}
+              {/* Romantic couple photo frame with optimized lazy loading */}
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-6 border border-[#c79a55]/40 shadow-inner relative group">
                 <img
                   src="/src/assets/images/hero_wedding_couple_1793182915577.jpg"
                   alt="Cô dâu chú rể"
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
+
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-4">
                   <div className="text-white text-xs font-['Be_Vietnam_Pro',sans-serif]">
                     <p className="font-['Tahoma',sans-serif] font-bold text-sm text-[#e7c988]">

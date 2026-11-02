@@ -16,6 +16,7 @@ export const ClosingSection: React.FC<ClosingSectionProps> = ({ config }) => {
         <img
           alt={`${couple.groomDisplayName} và ${couple.brideDisplayName} trong ảnh cưới`}
           loading="lazy"
+          decoding="async"
           src={closing.portraitUrl || '/src/assets/images/hero_wedding_couple_1793182915577.jpg'}
           onError={(e) => {
             (e.target as HTMLImageElement).src = '/src/assets/images/hero_wedding_couple_1793182915577.jpg';

@@ -4,10 +4,22 @@ import path from 'path';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { defaultWeddingConfig } from '../src/data/defaultConfig.js';
-import type { WeddingConfig, RSVPSubmission, WeddingWish, AdminStats } from '../src/types/wedding.js';
+import { defaultWeddingWishes } from '../src/data/defaultWishes.js';
+import { defaultWeddingRsvps } from '../src/data/defaultRsvps.js';
+import { defaultWeddingVisits } from '../src/data/defaultVisits.js';
+import type {
+  WeddingConfig,
+  RSVPSubmission,
+  WeddingWish,
+  AdminStats,
+  VisitDataStore,
+  VisitAnalyticsSummary,
+  VisitRecord,
+} from '../src/types/wedding.js';
 import {
   readJSON,
   writeJSON,
+  writeSourceFile,
   saveUpload,
   sniffFile,
   UPLOAD_DIR,
@@ -21,7 +33,9 @@ import {
   storageInfo,
   syncFileToGitHub,
   githubToken,
+  githubRepo,
 } from './storage.js';
+
 
 dotenv.config();
 
@@ -105,82 +119,108 @@ async function getConfig(): Promise<WeddingConfig> {
   return { ...defaultWeddingConfig, ...stored };
 }
 
-async function saveConfig(config: WeddingConfig) {
+async function saveConfig(config: WeddingConfig, explicitToken?: string) {
   // 1. Ghi vào wedding-config.json qua lớp storage (Redis / /tmp / data / GitHub)
-  await writeJSON('wedding-config', config);
+  await writeJSON('wedding-config', config, explicitToken);
 
   // 2. Ghi đè vào src/data/defaultConfig.ts để code nguồn luôn mang theo cấu hình mới nhất vĩnh viễn
-  try {
-    const defaultConfigFile = path.resolve(process.cwd(), 'src', 'data', 'defaultConfig.ts');
-    const tsCode = `import { WeddingConfig } from '../types/wedding';\n\nexport const defaultWeddingConfig: WeddingConfig = ${JSON.stringify(config, null, 2)};\n`;
-    fs.writeFileSync(defaultConfigFile, tsCode, 'utf-8');
-  } catch (err) {
-    // Expected trên môi trường read-only như Vercel
-  }
-
-  // 3. Nếu có cấu hình GITHUB_TOKEN, tự động commit cả wedding-config.json và defaultConfig.ts lên GitHub repo
-  if (githubToken) {
-    syncFileToGitHub(
-      'data/wedding-config.json',
-      Buffer.from(JSON.stringify(config, null, 2), 'utf-8'),
-      'Cập nhật cấu hình thiệp cưới qua Admin CMS'
-    ).catch(() => {});
-    syncFileToGitHub(
-      'src/data/defaultConfig.ts',
-      Buffer.from(`import { WeddingConfig } from '../types/wedding';\n\nexport const defaultWeddingConfig: WeddingConfig = ${JSON.stringify(config, null, 2)};\n`, 'utf-8'),
-      'Đồng bộ cấu hình mặc định thiệp cưới qua Admin CMS'
-    ).catch(() => {});
-  }
+  const tsCode = `import { WeddingConfig } from '../types/wedding';\n\nexport const defaultWeddingConfig: WeddingConfig = ${JSON.stringify(config, null, 2)};\n`;
+  await writeSourceFile(
+    'src/data/defaultConfig.ts',
+    tsCode,
+    'Đồng bộ cấu hình thiệp cưới vào source code qua Admin CMS',
+    explicitToken
+  );
 }
 
 // ---------------- RSVP ----------------
 async function getRSVPs(): Promise<RSVPSubmission[]> {
-  return readJSON<RSVPSubmission[]>('rsvp-submissions', []);
+  const stored = await readJSON<RSVPSubmission[] | null>('rsvp-submissions', null);
+  if (stored && Array.isArray(stored) && stored.length > 0) return stored;
+  return defaultWeddingRsvps;
 }
 
-async function saveRSVPs(rsvps: RSVPSubmission[]) {
-  await writeJSON('rsvp-submissions', rsvps);
+async function saveRSVPs(rsvps: RSVPSubmission[], explicitToken?: string) {
+  // 1. Ghi JSON vào storage
+  await writeJSON('rsvp-submissions', rsvps, explicitToken);
+
+  // 2. Ghi đè trực tiếp vào src/data/defaultRsvps.ts
+  const tsCode = `import { RSVPSubmission } from '../types/wedding';\n\nexport const defaultWeddingRsvps: RSVPSubmission[] = ${JSON.stringify(rsvps, null, 2)};\n`;
+  await writeSourceFile(
+    'src/data/defaultRsvps.ts',
+    tsCode,
+    'Cập nhật danh sách xác nhận tham dự (RSVP) vào source code',
+    explicitToken
+  );
 }
 
 // ---------------- Wishes ----------------
 async function getWishes(): Promise<WeddingWish[]> {
   const stored = await readJSON<WeddingWish[] | null>('wedding-wishes', null);
-  if (stored) return stored;
-
-  // Seed with charming sample wishes
-  const initialWishes: WeddingWish[] = [
-    {
-      id: 'wish-1',
-      senderName: 'Gia đình Bác Ba',
-      message: 'Chúc hai cháu trăm năm hạnh phúc, tình nghĩa bền lâu, răng long đầu bạc!',
-      status: 'approved',
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    },
-    {
-      id: 'wish-2',
-      senderName: 'Hội Bạn Đại Học',
-      message: 'Chúc mừng đôi bạn trẻ về chung một nhà! Luôn ngọt ngào và ngập tràn niềm vui nhé!',
-      status: 'approved',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-    },
-  ];
-  await writeJSON('wedding-wishes', initialWishes);
-  return initialWishes;
+  if (stored && Array.isArray(stored) && stored.length > 0) return stored;
+  return defaultWeddingWishes;
 }
 
-async function saveWishes(wishes: WeddingWish[]) {
-  await writeJSON('wedding-wishes', wishes);
+async function saveWishes(wishes: WeddingWish[], explicitToken?: string) {
+  // 1. Ghi JSON vào storage
+  await writeJSON('wedding-wishes', wishes, explicitToken);
+
+  // 2. Ghi đè trực tiếp vào src/data/defaultWishes.ts
+  const tsCode = `import { WeddingWish } from '../types/wedding';\n\nexport const defaultWeddingWishes: WeddingWish[] = ${JSON.stringify(wishes, null, 2)};\n`;
+  await writeSourceFile(
+    'src/data/defaultWishes.ts',
+    tsCode,
+    'Cập nhật danh sách lời chúc yêu thương vào source code',
+    explicitToken
+  );
+}
+
+// ---------------- Visits / Analytics ----------------
+async function getVisits(): Promise<VisitDataStore> {
+  const stored = await readJSON<VisitDataStore | null>('wedding-visits', null);
+  if (stored && typeof stored.totalVisits === 'number') {
+    return {
+      totalVisits: stored.totalVisits || 1,
+      byDate: stored.byDate || {},
+      byMonth: stored.byMonth || {},
+      byYear: stored.byYear || {},
+      recentVisits: Array.isArray(stored.recentVisits) ? stored.recentVisits : [],
+    };
+  }
+  return defaultWeddingVisits;
+}
+
+// Debounce commit cho visits để không spam commit liên tục mỗi giây
+let visitCommitTimer: NodeJS.Timeout | null = null;
+
+async function saveVisits(visits: VisitDataStore, explicitToken?: string) {
+  // Luôn ghi JSON vào storage (/tmp, data, redis) tức thì
+  await writeJSON('wedding-visits', visits, explicitToken);
+
+  // Ghi file nguồn với debounce 5 giây để gom nhóm lượt truy cập
+  if (visitCommitTimer) clearTimeout(visitCommitTimer);
+  visitCommitTimer = setTimeout(async () => {
+    try {
+      const tsCode = `import { VisitDataStore } from '../types/wedding';\n\nexport const defaultWeddingVisits: VisitDataStore = ${JSON.stringify(visits, null, 2)};\n`;
+      await writeSourceFile(
+        'src/data/defaultVisits.ts',
+        tsCode,
+        'Cập nhật thống kê lượt truy cập website vào source code',
+        explicitToken
+      );
+    } catch {}
+  }, 3000);
 }
 
 app.use(express.json({ limit: '5mb' }));
 
 // API luôn lấy dữ liệu mới nhất, không để CDN/trình duyệt giữ bản cũ
 app.use('/api', (_req: Request, res: Response, next: NextFunction) => {
-  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   next();
 });
 
-// Phục vụ ảnh từ cả public/images, src/assets/images, uploads và /tmp
+// Phục vụ ảnh từ cả public/images, src/assets/images, uploads và /tmp với caching tối ưu
 app.get('/images/:file', (req: Request, res: Response, next: NextFunction) => {
   const file = path.basename(req.params.file);
   const candidates = [
@@ -193,13 +233,15 @@ app.get('/images/:file', (req: Request, res: Response, next: NextFunction) => {
   ];
   for (const c of candidates) {
     if (fs.existsSync(c)) {
+      // Tối ưu cache: trình duyệt lưu đệm lâu dài, không tải lại lãng phí băng thông
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       return res.sendFile(c);
     }
   }
   next();
 });
 
-// Phục vụ nhạc từ cả public/audio, src/audio, dist và /tmp
+// Phục vụ nhạc từ cả public/audio, src/audio, dist và /tmp với streaming và caching tối ưu
 app.get('/audio/:file', (req: Request, res: Response, next: NextFunction) => {
   const file = path.basename(req.params.file);
   const candidates = [
@@ -212,11 +254,14 @@ app.get('/audio/:file', (req: Request, res: Response, next: NextFunction) => {
   ];
   for (const c of candidates) {
     if (fs.existsSync(c)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('Accept-Ranges', 'bytes');
       return res.sendFile(c);
     }
   }
   next();
 });
+
 
 // Phục vụ thư mục uploads khi chạy local/VPS
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d' }));
@@ -689,15 +734,21 @@ app.post(
   }
 );
 
-// 5. Admin Stats Route
+// 5. Admin Stats Route (bao gồm thống kê truy cập ngày/tháng/năm)
 app.get('/api/admin/stats', requireAdmin, async (_req: Request, res: Response) => {
   try {
     const rsvps = await getRSVPs();
     const wishes = await getWishes();
+    const visits = await getVisits();
 
     const attendingRsvps = rsvps.filter((r) => r.attending === 'attending');
     const notAttendingRsvps = rsvps.filter((r) => r.attending === 'not_attending');
     const totalGuests = attendingRsvps.reduce((sum, r) => sum + (Number(r.guestCount) || 1), 0);
+
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const thisMonth = now.toISOString().slice(0, 7);
+    const thisYear = now.toISOString().slice(0, 4);
 
     const stats: AdminStats = {
       totalRsvp: rsvps.length,
@@ -706,12 +757,197 @@ app.get('/api/admin/stats', requireAdmin, async (_req: Request, res: Response) =
       totalGuests,
       pendingWishes: wishes.filter((w) => w.status === 'pending').length,
       approvedWishes: wishes.filter((w) => w.status === 'approved').length,
+      totalVisits: visits.totalVisits || 0,
+      todayVisits: visits.byDate[today] || 0,
+      thisMonthVisits: visits.byMonth[thisMonth] || 0,
+      thisYearVisits: visits.byYear[thisYear] || 0,
       lastUpdated: new Date().toISOString(),
     };
 
     res.json(stats);
   } catch (error) {
     res.status(500).json({ error: 'Không thể tính toán thống kê' });
+  }
+});
+
+// 6. Visit Tracking & Analytics Routes
+app.post('/api/analytics/visit', async (req: Request, res: Response) => {
+  try {
+    const { page, device } = req.body || {};
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10); // YYYY-MM-DD
+    const thisMonth = now.toISOString().slice(0, 7); // YYYY-MM
+    const thisYear = now.toISOString().slice(0, 4); // YYYY
+
+    const visits = await getVisits();
+
+    visits.totalVisits = (visits.totalVisits || 0) + 1;
+    visits.byDate[today] = (visits.byDate[today] || 0) + 1;
+    visits.byMonth[thisMonth] = (visits.byMonth[thisMonth] || 0) + 1;
+    visits.byYear[thisYear] = (visits.byYear[thisYear] || 0) + 1;
+
+    const newRecord: VisitRecord = {
+      id: 'v-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      timestamp: now.toISOString(),
+      date: today,
+      month: thisMonth,
+      year: thisYear,
+      page: typeof page === 'string' ? page.slice(0, 50) : '/',
+      device: typeof device === 'string' ? device.slice(0, 50) : 'desktop',
+    };
+
+    if (!Array.isArray(visits.recentVisits)) {
+      visits.recentVisits = [];
+    }
+    visits.recentVisits.unshift(newRecord);
+    if (visits.recentVisits.length > 50) {
+      visits.recentVisits = visits.recentVisits.slice(0, 50);
+    }
+
+    await saveVisits(visits);
+
+    res.json({
+      success: true,
+      totalVisits: visits.totalVisits,
+      todayVisits: visits.byDate[today],
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Không thể ghi nhận lượt truy cập' });
+  }
+});
+
+// Thống kê chi tiết theo Ngày / Tháng / Năm cho Admin CMS
+app.get('/api/admin/analytics', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const visits = await getVisits();
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const thisMonth = now.toISOString().slice(0, 7);
+    const thisYear = now.toISOString().slice(0, 4);
+
+    // Chuyển đổi byDate thành mảng đã sắp xếp giảm dần theo ngày
+    const dateEntries = Object.entries(visits.byDate || {})
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    // Chuyển đổi byMonth thành mảng sắp xếp giảm dần theo tháng
+    const monthEntries = Object.entries(visits.byMonth || {})
+      .map(([month, count]) => ({ month, count }))
+      .sort((a, b) => b.month.localeCompare(a.month));
+
+    // Chuyển đổi byYear thành mảng sắp xếp giảm dần theo năm
+    const yearEntries = Object.entries(visits.byYear || {})
+      .map(([year, count]) => ({ year, count }))
+      .sort((a, b) => b.year.localeCompare(a.year));
+
+    const summary: VisitAnalyticsSummary = {
+      totalVisits: visits.totalVisits || 0,
+      todayVisits: visits.byDate[today] || 0,
+      thisMonthVisits: visits.byMonth[thisMonth] || 0,
+      thisYearVisits: visits.byYear[thisYear] || 0,
+      byDate: dateEntries.slice(0, 31), // 31 ngày gần nhất
+      byMonth: monthEntries.slice(0, 24), // 24 tháng gần nhất
+      byYear: yearEntries,
+      recentVisits: (visits.recentVisits || []).slice(0, 30),
+    };
+
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ error: 'Không thể tải dữ liệu thống kê truy cập' });
+  }
+});
+
+// 7. Đồng bộ trực tiếp toàn bộ dữ liệu nguồn lên GitHub
+app.post('/api/admin/sync-github', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const token = req.body?.githubToken || githubToken;
+    if (!token) {
+      return res.status(400).json({
+        error:
+          'Chưa có GitHub Token. Vui lòng nhập Personal Access Token của bạn hoặc thêm GITHUB_TOKEN vào Environment Variables trên Vercel.',
+      });
+    }
+
+    const config = await getConfig();
+    const wishes = await getWishes();
+    const rsvps = await getRSVPs();
+    const visits = await getVisits();
+
+    // 1. Đồng bộ Cấu hình (defaultConfig.ts & wedding-config.json)
+    await syncFileToGitHub(
+      'data/wedding-config.json',
+      Buffer.from(JSON.stringify(config, null, 2), 'utf-8'),
+      'Đồng bộ data/wedding-config.json từ Admin CMS',
+      token
+    );
+    await syncFileToGitHub(
+      'src/data/defaultConfig.ts',
+      Buffer.from(
+        `import { WeddingConfig } from '../types/wedding';\n\nexport const defaultWeddingConfig: WeddingConfig = ${JSON.stringify(config, null, 2)};\n`,
+        'utf-8'
+      ),
+      'Đồng bộ src/data/defaultConfig.ts từ Admin CMS',
+      token
+    );
+
+    // 2. Đồng bộ Lời chúc (defaultWishes.ts & wedding-wishes.json)
+    await syncFileToGitHub(
+      'data/wedding-wishes.json',
+      Buffer.from(JSON.stringify(wishes, null, 2), 'utf-8'),
+      'Đồng bộ data/wedding-wishes.json từ Admin CMS',
+      token
+    );
+    await syncFileToGitHub(
+      'src/data/defaultWishes.ts',
+      Buffer.from(
+        `import { WeddingWish } from '../types/wedding';\n\nexport const defaultWeddingWishes: WeddingWish[] = ${JSON.stringify(wishes, null, 2)};\n`,
+        'utf-8'
+      ),
+      'Đồng bộ src/data/defaultWishes.ts từ Admin CMS',
+      token
+    );
+
+    // 3. Đồng bộ RSVP (defaultRsvps.ts & rsvp-submissions.json)
+    await syncFileToGitHub(
+      'data/rsvp-submissions.json',
+      Buffer.from(JSON.stringify(rsvps, null, 2), 'utf-8'),
+      'Đồng bộ data/rsvp-submissions.json từ Admin CMS',
+      token
+    );
+    await syncFileToGitHub(
+      'src/data/defaultRsvps.ts',
+      Buffer.from(
+        `import { RSVPSubmission } from '../types/wedding';\n\nexport const defaultWeddingRsvps: RSVPSubmission[] = ${JSON.stringify(rsvps, null, 2)};\n`,
+        'utf-8'
+      ),
+      'Đồng bộ src/data/defaultRsvps.ts từ Admin CMS',
+      token
+    );
+
+    // 4. Đồng bộ Lượt truy cập (defaultVisits.ts & wedding-visits.json)
+    await syncFileToGitHub(
+      'data/wedding-visits.json',
+      Buffer.from(JSON.stringify(visits, null, 2), 'utf-8'),
+      'Đồng bộ data/wedding-visits.json từ Admin CMS',
+      token
+    );
+    await syncFileToGitHub(
+      'src/data/defaultVisits.ts',
+      Buffer.from(
+        `import { VisitDataStore } from '../types/wedding';\n\nexport const defaultWeddingVisits: VisitDataStore = ${JSON.stringify(visits, null, 2)};\n`,
+        'utf-8'
+      ),
+      'Đồng bộ src/data/defaultVisits.ts từ Admin CMS',
+      token
+    );
+
+    res.json({
+      success: true,
+      message: `Đã đồng bộ toàn bộ cấu hình, lời chúc, RSVP và lượt truy cập vào mã nguồn trên GitHub (${githubRepo}) thành công!`,
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Lỗi đồng bộ GitHub';
+    res.status(500).json({ error: msg });
   }
 });
 
@@ -724,3 +960,4 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 export default app;
+

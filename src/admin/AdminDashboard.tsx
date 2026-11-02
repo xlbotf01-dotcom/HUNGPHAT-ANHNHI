@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { WeddingConfig, RSVPSubmission, WeddingWish, AdminStats } from '../types/wedding';
+import { WeddingConfig, RSVPSubmission, WeddingWish, AdminStats, VisitAnalyticsSummary } from '../types/wedding';
 import {
   LayoutDashboard,
   Users,
@@ -29,6 +29,10 @@ import {
   QrCode,
   CreditCard,
   Heart,
+  BarChart3,
+  TrendingUp,
+  Eye,
+  GitBranch,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -40,6 +44,7 @@ interface AdminDashboardProps {
 
 type TabType =
   | 'overview'
+  | 'visits'
   | 'couple'
   | 'cover'
   | 'hero'
@@ -56,6 +61,7 @@ type TabType =
   | 'wishes'
   | 'seo'
   | 'settings';
+
 
 interface ImageFieldProps {
   label: string;
@@ -240,12 +246,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Stats, RSVPs, Wishes
+  // Stats, RSVPs, Wishes, Visits Analytics
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [analytics, setAnalytics] = useState<VisitAnalyticsSummary | null>(null);
   const [rsvps, setRsvps] = useState<RSVPSubmission[]>([]);
   const [wishes, setWishes] = useState<WeddingWish[]>([]);
   const [rsvpSearch, setRsvpSearch] = useState('');
   const [rsvpFilter, setRsvpFilter] = useState<'all' | 'attending' | 'not_attending'>('all');
+
+  // GitHub sync state
+  const [githubTokenInput, setGithubTokenInput] = useState('');
+  const [syncingGithub, setSyncingGithub] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Change Password State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -274,6 +286,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         setStats(statsData);
+      }
+
+      // 2b. Analytics (Visits Breakdown)
+      const analyticsRes = await fetch('/api/admin/analytics', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (analyticsRes.ok) {
+        const analyticsData = await analyticsRes.json();
+        setAnalytics(analyticsData);
       }
 
       // 3. RSVPs
@@ -310,6 +331,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSaving(true);
     setSaveMessage(null);
 
+    // Lưu ngay vào localStorage client để phản ánh tức thì trên toàn ứng dụng
+    try {
+      localStorage.setItem('wedding_config_cached', JSON.stringify(config));
+    } catch {}
+
     try {
       const res = await fetch('/api/config', {
         method: 'PUT',
@@ -325,7 +351,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         throw new Error(data.error || 'Lỗi lưu cấu hình.');
       }
 
-      setSaveMessage({ type: 'success', text: 'Đã lưu mọi thay đổi thành công vào máy chủ!' });
+      setSaveMessage({ type: 'success', text: 'Đã lưu mọi thay đổi thành công vào máy chủ và source code!' });
       setTimeout(() => setSaveMessage(null), 4000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Không thể lưu thay đổi.';
@@ -334,6 +360,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setSaving(false);
     }
   };
+
+  // Đồng bộ tức thì lên GitHub
+  const handleSyncGithub = async () => {
+    setSyncingGithub(true);
+    setSyncMessage(null);
+    try {
+      const res = await fetch('/api/admin/sync-github', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ githubToken: githubTokenInput.trim() || undefined }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Lỗi đồng bộ GitHub.');
+      }
+
+      setSyncMessage({ type: 'success', text: data.message });
+      fetchData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi đồng bộ GitHub.';
+      setSyncMessage({ type: 'error', text: msg });
+    } finally {
+      setSyncingGithub(false);
+    }
+  };
+
 
   // RSVP actions
   const handleDeleteRsvp = async (id: string) => {
@@ -520,6 +576,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <nav className="p-3 space-y-1 flex-1 overflow-y-auto text-xs">
           {[
             { id: 'overview', label: 'Tổng quan & Thống kê', icon: LayoutDashboard },
+            { id: 'visits', label: 'Lượt truy cập (Ngày/Tháng/Năm)', icon: BarChart3, badge: stats?.todayVisits ? `${stats.todayVisits} hôm nay` : undefined },
             { id: 'couple', label: 'Cô dâu & Chú rể', icon: Users },
             { id: 'cover', label: 'Thiệp mời mở đầu', icon: Mail },
             { id: 'hero', label: 'Tiêu đề Save the Date', icon: Sparkles },
@@ -535,7 +592,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             { id: 'rsvp', label: 'Quản lý RSVP xác nhận', icon: CheckCircle2, badge: rsvps.length },
             { id: 'wishes', label: 'Sổ lời chúc khách mời', icon: MessageSquare, badge: wishes.filter((w) => w.status === 'pending').length },
             { id: 'seo', label: 'SEO & Chia sẻ mạng xã hội', icon: Globe },
-            { id: 'settings', label: 'Đổi mật khẩu & Hệ thống', icon: Settings },
+            { id: 'settings', label: 'Đổi mật khẩu & Đồng bộ Source', icon: Settings },
           ].map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -553,7 +610,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <Icon className="w-4 h-4 shrink-0" />
                   <span>{item.label}</span>
                 </div>
-                {item.badge !== undefined && item.badge > 0 && (
+                {item.badge !== undefined && (
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? 'bg-[#c79a55] text-black font-bold' : 'bg-neutral-800 text-[#e7c988]'}`}>
                     {item.badge}
                   </span>
@@ -581,6 +638,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="flex items-center gap-3">
             <h1 className="text-base font-semibold text-neutral-800">
               {activeTab === 'overview' && 'Tổng quan hệ thống thiệp cưới'}
+              {activeTab === 'visits' && 'Thống kê Lượt truy cập theo Ngày / Tháng / Năm'}
               {activeTab === 'couple' && 'Thông tin Cô dâu & Chú rể'}
               {activeTab === 'cover' && 'Cài đặt Thiệp mở đầu (Cover Card)'}
               {activeTab === 'hero' && 'Cài đặt Mục Save the Date & Lời chúc'}
@@ -596,9 +654,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {activeTab === 'rsvp' && 'Danh sách khách mời xác nhận tham dự'}
               {activeTab === 'wishes' && 'Kiểm duyệt và hiển thị Lời chúc'}
               {activeTab === 'seo' && 'Cấu hình SEO & Thẻ chia sẻ (OpenGraph)'}
-              {activeTab === 'settings' && 'Bảo mật tài khoản & Đổi mật khẩu'}
+              {activeTab === 'settings' && 'Bảo mật tài khoản & Đồng bộ Source'}
             </h1>
           </div>
+
 
           <div className="flex items-center gap-2.5">
             <button
@@ -679,6 +738,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
+              {/* Row 2: Visit Analytics quick cards */}
+              <div className="bg-gradient-to-r from-amber-50/70 to-rose-50/70 p-5 rounded-2xl border border-[#c79a55]/40 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-4 border-b border-[#c79a55]/20">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-[#710001]" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#710001]">
+                      Thống kê Lượt Truy Cập (Đã lưu vào Source)
+                    </h4>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('visits')}
+                    className="text-xs text-[#710001] hover:underline font-semibold flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+                  >
+                    <span>Xem biểu đồ chi tiết</span>
+                    <span>&rarr;</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-white/90 p-3.5 rounded-xl border border-neutral-200 shadow-2xs">
+                    <span className="text-[11px] text-neutral-500 block mb-1">Hôm nay</span>
+                    <strong className="text-xl font-bold text-[#710001] block">
+                      {stats?.todayVisits ?? 0}
+                    </strong>
+                    <span className="text-[10px] text-emerald-600 font-medium">Lượt xem</span>
+                  </div>
+
+                  <div className="bg-white/90 p-3.5 rounded-xl border border-neutral-200 shadow-2xs">
+                    <span className="text-[11px] text-neutral-500 block mb-1">Tháng này</span>
+                    <strong className="text-xl font-bold text-neutral-800 block">
+                      {stats?.thisMonthVisits ?? 0}
+                    </strong>
+                    <span className="text-[10px] text-neutral-500">Trong tháng</span>
+                  </div>
+
+                  <div className="bg-white/90 p-3.5 rounded-xl border border-neutral-200 shadow-2xs">
+                    <span className="text-[11px] text-neutral-500 block mb-1">Năm nay</span>
+                    <strong className="text-xl font-bold text-neutral-800 block">
+                      {stats?.thisYearVisits ?? 0}
+                    </strong>
+                    <span className="text-[10px] text-neutral-500">Trong năm</span>
+                  </div>
+
+                  <div className="bg-white/90 p-3.5 rounded-xl border border-neutral-200 shadow-2xs">
+                    <span className="text-[11px] text-neutral-500 block mb-1">Tổng toàn bộ</span>
+                    <strong className="text-xl font-bold text-[#c79a55] block">
+                      {stats?.totalVisits ?? 0}
+                    </strong>
+                    <span className="text-[10px] text-neutral-500">Từ trước đến nay</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Information Snapshot Card */}
               <div className="bg-white p-6 rounded-xl border border-neutral-200 shadow-xs">
                 <div className="flex items-center justify-between pb-4 mb-4 border-b border-neutral-100">
@@ -725,6 +837,272 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
           )}
+
+          {/* TAB 1b: VISITS ANALYTICS */}
+          {activeTab === 'visits' && (
+            <div className="space-y-6">
+              {/* Header metrics card */}
+              <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-xs space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-[#710001] flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-[#710001]" />
+                      <span>Thống kê Lượt Truy Cập (Lưu vĩnh viễn trên Source web)</span>
+                    </h3>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                      Được ghi nhận trực tiếp vào <code className="bg-neutral-100 px-1 py-0.5 rounded text-neutral-800 font-mono">src/data/defaultVisits.ts</code> &amp; <code className="bg-neutral-100 px-1 py-0.5 rounded text-neutral-800 font-mono">data/wedding-visits.json</code>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={fetchData}
+                      className="px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Tải lại số liệu</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSyncGithub}
+                      disabled={syncingGithub}
+                      className="px-3 py-1.5 bg-[#710001] hover:bg-[#8e1012] text-white text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <GitBranch className="w-3.5 h-3.5" />
+                      <span>{syncingGithub ? 'Đang đồng bộ...' : 'Đồng bộ GitHub'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4 Cards: Ngày, Tháng, Năm, Tổng */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-4 bg-gradient-to-br from-rose-50 to-amber-50 rounded-xl border border-rose-200/80">
+                    <div className="flex items-center justify-between text-neutral-600 mb-1">
+                      <span className="text-xs font-semibold">Hôm Nay</span>
+                      <Eye className="w-4 h-4 text-[#710001]" />
+                    </div>
+                    <div className="text-3xl font-extrabold text-[#710001]">
+                      {analytics?.todayVisits ?? stats?.todayVisits ?? 0}
+                    </div>
+                    <div className="text-[11px] text-neutral-600 mt-1">Lượt xem trong ngày</div>
+                  </div>
+
+                  <div className="p-4 bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl border border-amber-200/80">
+                    <div className="flex items-center justify-between text-neutral-600 mb-1">
+                      <span className="text-xs font-semibold">Tháng Này</span>
+                      <Calendar className="w-4 h-4 text-[#c79a55]" />
+                    </div>
+                    <div className="text-3xl font-extrabold text-neutral-900">
+                      {analytics?.thisMonthVisits ?? stats?.thisMonthVisits ?? 0}
+                    </div>
+                    <div className="text-[11px] text-neutral-600 mt-1">Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}</div>
+                  </div>
+
+                  <div className="p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200/80">
+                    <div className="flex items-center justify-between text-neutral-600 mb-1">
+                      <span className="text-xs font-semibold">Năm Nay</span>
+                      <TrendingUp className="w-4 h-4 text-emerald-700" />
+                    </div>
+                    <div className="text-3xl font-extrabold text-emerald-800">
+                      {analytics?.thisYearVisits ?? stats?.thisYearVisits ?? 0}
+                    </div>
+                    <div className="text-[11px] text-emerald-700 mt-1">Năm {new Date().getFullYear()}</div>
+                  </div>
+
+                  <div className="p-4 bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-xl border border-neutral-300">
+                    <div className="flex items-center justify-between text-neutral-600 mb-1">
+                      <span className="text-xs font-semibold">Tổng Cộng</span>
+                      <Users className="w-4 h-4 text-neutral-700" />
+                    </div>
+                    <div className="text-3xl font-extrabold text-neutral-900">
+                      {analytics?.totalVisits ?? stats?.totalVisits ?? 0}
+                    </div>
+                    <div className="text-[11px] text-neutral-500 mt-1">Toàn bộ thời gian</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid 2 Columns: Thống kê theo Ngày & Thống kê theo Tháng / Năm */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Cột trái: Thống kê 14 ngày gần nhất */}
+                <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-neutral-200 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#710001] flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-[#710001]" />
+                      <span>Thống kê theo từng ngày (30 ngày gần nhất)</span>
+                    </h4>
+                    <span className="text-[11px] text-neutral-400 font-mono">
+                      {analytics?.byDate?.length || 0} ngày ghi nhận
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                    {(!analytics?.byDate || analytics.byDate.length === 0) ? (
+                      <div className="py-8 text-center text-xs text-neutral-400">
+                        Chưa có dữ liệu theo ngày. Hãy truy cập trang thiệp để ghi nhận.
+                      </div>
+                    ) : (
+                      analytics.byDate.map((item, index) => {
+                        const maxCount = Math.max(...analytics.byDate.map((d) => d.count), 1);
+                        const pct = Math.min(Math.round((item.count / maxCount) * 100), 100);
+                        const isToday = item.date === new Date().toISOString().slice(0, 10);
+
+                        return (
+                          <div
+                            key={index}
+                            className={`p-2.5 rounded-xl border transition-all ${
+                              isToday
+                                ? 'bg-amber-50/70 border-amber-300'
+                                : 'bg-neutral-50/60 border-neutral-200/80'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between text-xs mb-1.5">
+                              <span className="font-mono font-semibold text-neutral-800 flex items-center gap-1.5">
+                                {item.date}
+                                {isToday && (
+                                  <span className="text-[10px] px-1.5 py-0.2 bg-[#710001] text-white rounded font-bold">
+                                    Hôm nay
+                                  </span>
+                                )}
+                              </span>
+                              <strong className="text-[#710001] font-bold">
+                                {item.count} <span className="text-[10px] text-neutral-500 font-normal">lượt</span>
+                              </strong>
+                            </div>
+                            <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-[#710001] to-[#c79a55] rounded-full transition-all duration-500"
+                                style={{ width: `${Math.max(pct, 5)}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Cột phải: Thống kê theo Tháng & Năm */}
+                <div className="lg:col-span-5 space-y-6">
+                  {/* Bảng theo tháng */}
+                  <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-xs space-y-4">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#710001] border-b pb-3 flex items-center gap-1.5">
+                      <BarChart3 className="w-4 h-4 text-[#710001]" />
+                      <span>Thống kê theo Tháng</span>
+                    </h4>
+
+                    <div className="space-y-2">
+                      {(!analytics?.byMonth || analytics.byMonth.length === 0) ? (
+                        <div className="py-4 text-center text-xs text-neutral-400">Chưa có số liệu tháng</div>
+                      ) : (
+                        analytics.byMonth.map((item, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-2.5 bg-neutral-50 rounded-xl border border-neutral-200 text-xs"
+                          >
+                            <span className="font-mono font-medium text-neutral-700">Tháng {item.month}</span>
+                            <span className="font-bold text-neutral-900 bg-white px-2.5 py-0.5 rounded-lg border border-neutral-200 shadow-2xs">
+                              {item.count} lượt
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bảng theo năm */}
+                  <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-xs space-y-4">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#710001] border-b pb-3 flex items-center gap-1.5">
+                      <TrendingUp className="w-4 h-4 text-[#710001]" />
+                      <span>Thống kê theo Năm</span>
+                    </h4>
+
+                    <div className="space-y-2">
+                      {(!analytics?.byYear || analytics.byYear.length === 0) ? (
+                        <div className="py-4 text-center text-xs text-neutral-400">Chưa có số liệu năm</div>
+                      ) : (
+                        analytics.byYear.map((item, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-2.5 bg-neutral-50 rounded-xl border border-neutral-200 text-xs"
+                          >
+                            <span className="font-mono font-medium text-neutral-700">Năm {item.year}</span>
+                            <span className="font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+                              {item.count} lượt
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nhật ký lượt xem gần nhất */}
+              <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b pb-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#710001]">
+                    Nhật ký các lượt truy cập gần nhất (Thời gian thực)
+                  </h4>
+                  <span className="text-[11px] text-neutral-400">
+                    Hiển thị tối đa 30 lượt gần nhất
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-neutral-50 text-neutral-600 font-semibold border-b">
+                      <tr>
+                        <th className="py-2.5 px-3">Thời gian</th>
+                        <th className="py-2.5 px-3">Ngày</th>
+                        <th className="py-2.5 px-3">Trang truy cập</th>
+                        <th className="py-2.5 px-3">Thiết bị</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100">
+                      {(!analytics?.recentVisits || analytics.recentVisits.length === 0) ? (
+                        <tr>
+                          <td colSpan={4} className="py-6 text-center text-neutral-400 italic">
+                            Chưa có nhật ký truy cập nào.
+                          </td>
+                        </tr>
+                      ) : (
+                        analytics.recentVisits.map((item) => (
+                          <tr key={item.id} className="hover:bg-neutral-50/80 transition-colors">
+                            <td className="py-2.5 px-3 font-mono text-neutral-700">
+                              {new Date(item.timestamp).toLocaleTimeString('vi-VN')}
+                            </td>
+                            <td className="py-2.5 px-3 font-mono text-neutral-500">
+                              {item.date}
+                            </td>
+                            <td className="py-2.5 px-3 text-neutral-800">
+                              <span className="px-2 py-0.5 bg-neutral-100 rounded text-[11px] font-mono">
+                                {item.page || '/'}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                                  item.device === 'mobile'
+                                    ? 'bg-purple-100 text-purple-800'
+                                    : 'bg-sky-100 text-sky-800'
+                                }`}
+                              >
+                                {item.device === 'mobile' ? 'Điện thoại' : 'Máy tính'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
 
           {/* TAB 2: COUPLE */}
           {activeTab === 'couple' && (
@@ -3289,7 +3667,73 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Card 3: Lưu ý lưu trữ ảnh vĩnh viễn trên Vercel */}
+              {/* Card 3: Đồng bộ toàn bộ dữ liệu vào Source Code & GitHub */}
+              <div className="bg-white p-6 rounded-xl border-2 border-[#710001]/40 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
+                  <div>
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-[#710001] flex items-center gap-2">
+                      <GitBranch className="w-4 h-4 text-[#710001]" />
+                      <span>Đồng bộ toàn bộ dữ liệu vào Source Code &amp; GitHub</span>
+                    </h3>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                      Kho mã nguồn: <span className="font-mono text-neutral-800 font-bold">xlbotf01-dotcom/HUNGPHAT-ANHNHI</span>
+                    </p>
+                  </div>
+                </div>
+
+                {syncMessage && (
+                  <div
+                    className={`p-3 text-xs rounded-lg ${
+                      syncMessage.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-300'
+                        : 'bg-rose-50 text-rose-800 border border-rose-300'
+                    }`}
+                  >
+                    {syncMessage.text}
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <p className="text-xs text-neutral-700 leading-relaxed">
+                    Khi bấm nút đồng bộ, hệ thống sẽ tự động cập nhật và commit trực tiếp toàn bộ 4 tệp dữ liệu nguồn lên GitHub:
+                  </p>
+                  <ul className="text-xs text-neutral-600 list-disc list-inside space-y-1 bg-neutral-50 p-3 rounded-lg border border-neutral-200 font-mono">
+                    <li><strong className="text-neutral-800">src/data/defaultConfig.ts</strong> &amp; data/wedding-config.json (Cấu hình thiệp)</li>
+                    <li><strong className="text-neutral-800">src/data/defaultWishes.ts</strong> &amp; data/wedding-wishes.json (Sổ lời chúc)</li>
+                    <li><strong className="text-neutral-800">src/data/defaultRsvps.ts</strong> &amp; data/rsvp-submissions.json (RSVP xác nhận)</li>
+                    <li><strong className="text-neutral-800">src/data/defaultVisits.ts</strong> &amp; data/wedding-visits.json (Lượt truy cập)</li>
+                  </ul>
+
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-700 mb-1">
+                      GitHub Personal Access Token (PAT)
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="password"
+                        value={githubTokenInput}
+                        onChange={(e) => setGithubTokenInput(e.target.value)}
+                        placeholder="ghp_... (để trống nếu đã cài biến môi trường GITHUB_TOKEN)"
+                        className="flex-1 p-2.5 bg-neutral-50 border border-neutral-300 rounded text-xs font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSyncGithub}
+                        disabled={syncingGithub}
+                        className="px-5 py-2.5 bg-[#710001] hover:bg-[#8e1012] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
+                      >
+                        <GitBranch className="w-4 h-4" />
+                        <span>{syncingGithub ? 'Đang đồng bộ...' : 'Đồng bộ GitHub ngay'}</span>
+                      </button>
+                    </div>
+                    <span className="text-[11px] text-neutral-500 mt-1 block">
+                      💡 Mẹo: Bạn có thể cài đặt biến môi trường <code className="bg-neutral-100 px-1 py-0.5 rounded text-neutral-800 font-mono">GITHUB_TOKEN</code> trên Vercel để hệ thống tự động đồng bộ mỗi khi có khách gửi lời chúc, RSVP hay truy cập!
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Lưu ý lưu trữ ảnh vĩnh viễn trên Vercel */}
               <div className="bg-amber-50/60 p-6 rounded-xl border border-amber-200 shadow-xs space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#710001] flex items-center gap-2">
                   <span>💡</span> Lưu ý lưu trữ ảnh vĩnh viễn khi chạy trên Vercel &amp; GitHub
@@ -3308,6 +3752,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
           )}
+
         </div>
       </main>
     </div>
